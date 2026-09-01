@@ -63,4 +63,10 @@ class AuthController extends AbstractController
             'name' => $user->getName(),
         ]);
     }
+
+        #[Route('/login', name: 'auth_login', methods: ['POST'])]
+    public function login(): never
+    {
+        throw new \LogicException('Ta metoda nigdy się nie wykona, żądanie przechwytuje json_login w security.yaml.');
+    }
 }
