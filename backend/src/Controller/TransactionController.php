@@ -20,6 +20,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class TransactionController extends AbstractController
 {
     use ValidationErrorTrait;
+    use ResolvesOwnedCategoryTrait;
 
     #[Route('', name: 'transaction_list', methods: ['GET'])]
     public function list(Request $request, TransactionRepository $transactionRepository): JsonResponse
@@ -124,17 +125,6 @@ class TransactionController extends AbstractController
         $em->flush();
 
         return $this->json(null, 204);
-    }
-
-    private function resolveOwnedCategory(CategoryRepository $categoryRepository, ?int $categoryId): Category|JsonResponse
-    {
-        $category = null !== $categoryId ? $categoryRepository->find($categoryId) : null;
-
-        if (!$category || !$this->isGranted(AbstractOwnershipVoter::OWNER, $category)) {
-            return $this->json(['errors' => ['categoryId' => 'Kategoria nie istnieje lub nie należy do użytkownika']], 400);
-        }
-
-        return $category;
     }
 
     private function mapInput(Request $request): TransactionInput
