@@ -81,7 +81,7 @@ onMounted(() => {
   <div class="categories-view">
     <h1>Kategorie</h1>
 
-    <table v-if="categoriesStore.list.length" class="categories-table">
+    <table v-if="categoriesStore.list.length" class="data-table">
       <thead>
         <tr>
           <th>Kolor</th>
@@ -95,15 +95,15 @@ onMounted(() => {
           <td><span class="color-dot" :style="{ backgroundColor: category.color }"></span></td>
           <td>{{ category.name }}</td>
           <td>{{ category.type === 'income' ? 'Przychód' : 'Wydatek' }}</td>
-          <td class="actions">
-            <button type="button" @click="startEdit(category)">Edytuj</button>
-            <button type="button" @click="handleDelete(category)">Usuń</button>
+          <td class="form-actions">
+            <button type="button" class="btn btn-secondary btn-small" @click="startEdit(category)">Edytuj</button>
+            <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(category)">Usuń</button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <form @submit.prevent="handleSubmit" class="category-form">
+    <form @submit.prevent="handleSubmit" class="entity-form">
       <h2>{{ editingId !== null ? 'Edytuj kategorię' : 'Nowa kategoria' }}</h2>
 
       <label>
@@ -132,95 +132,9 @@ onMounted(() => {
       <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
 
       <div class="form-actions">
-        <button type="submit">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj kategorię' }}</button>
-        <button v-if="editingId !== null" type="button" @click="resetForm">Anuluj</button>
+        <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj kategorię' }}</button>
+        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">Anuluj</button>
       </div>
     </form>
   </div>
 </template>
-
-<style scoped>
-.categories-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 24px;
-}
-
-.categories-table th,
-.categories-table td {
-  text-align: left;
-  padding: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.color-dot {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.actions button {
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-}
-
-.category-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-width: 360px;
-}
-
-.category-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
-}
-
-.category-form input,
-.category-form select {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font: inherit;
-}
-
-.form-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.form-actions button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: white;
-  font: inherit;
-  cursor: pointer;
-}
-
-.form-actions button[type='button'] {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.form-error {
-  color: #dc2626;
-  font-size: 14px;
-  margin: 0;
-}
-</style>
