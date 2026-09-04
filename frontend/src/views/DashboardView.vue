@@ -101,6 +101,17 @@ onUnmounted(() => {
       <canvas ref="chartCanvas"></canvas>
     </div>
     <p v-else-if="statsStore.monthly">Brak transakcji w tym miesiącu.</p>
+
+    <ul v-if="statsStore.monthly?.byCategory.length" class="category-breakdown">
+      <li v-for="entry in statsStore.monthly.byCategory" :key="entry.categoryId">
+        <span class="color-dot" :style="{ backgroundColor: categoryColor(entry.categoryId) }"></span>
+        <span class="category-name">{{ entry.categoryName }}</span>
+        <span class="category-total">{{ formatCurrency(entry.total) }}</span>
+        <span v-if="entry.budgetExceeded" class="badge-exceeded">
+          Przekroczono budżet ({{ formatCurrency(entry.budgetLimit ?? '0') }})
+        </span>
+      </li>
+    </ul>
   </div>
 </template>
 
@@ -165,5 +176,36 @@ onUnmounted(() => {
   position: relative;
   max-width: 480px;
   height: 320px;
+}
+
+.category-breakdown {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 0;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.category-breakdown li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.category-name {
+  flex: 1 1 auto;
+}
+
+.badge-exceeded {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #dc2626;
 }
 </style>
