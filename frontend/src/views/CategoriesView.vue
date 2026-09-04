@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import axios from 'axios'
 import { onMounted, reactive, ref } from 'vue'
+import EmptyState from '../components/EmptyState.vue'
+import ErrorAlert from '../components/ErrorAlert.vue'
+import LoadingIndicator from '../components/LoadingIndicator.vue'
+import { useApiError } from '../composables/useApiError'
 import { useCategoriesStore, type CategoryPayload } from '../stores/categories'
 import type { Category } from '../types'
 
 const categoriesStore = useCategoriesStore()
+const { extractErrorMessage } = useApiError()
 
+const isLoading = ref(true)
 const errorMessage = ref('')
 const editingId = ref<number | null>(null)
 
@@ -50,9 +55,7 @@ async function handleSubmit(): Promise<void> {
     }
     resetForm()
   } catch (error) {
-    errorMessage.value = axios.isAxiosError(error)
-      ? (error.response?.data?.error ?? 'Nie udało się zapisać kategorii.')
-      : 'Nie udało się zapisać kategorii.'
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać kategorii.')
   }
 }
 
@@ -66,14 +69,18 @@ async function handleDelete(category: Category): Promise<void> {
   try {
     await categoriesStore.remove(category.id)
   } catch (error) {
-    errorMessage.value = axios.isAxiosError(error)
-      ? (error.response?.data?.error ?? 'Nie udało się usunąć kategorii.')
-      : 'Nie udało się usunąć kategorii.'
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się usunąć kategorii.')
   }
 }
 
-onMounted(() => {
-  categoriesStore.fetchAll()
+onMounted(async () => {
+  try {
+    await categoriesStore.fetchAll()
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się pobrać kategorii.')
+  } finally {
+    isLoading.value = false
+  }
 })
 </script>
 
@@ -81,27 +88,31 @@ onMounted(() => {
   <div class="categories-view">
     <h1>Kategorie</h1>
 
-    <table v-if="categoriesStore.list.length" class="data-table">
-      <thead>
-        <tr>
-          <th>Kolor</th>
-          <th>Nazwa</th>
-          <th>Typ</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="category in categoriesStore.list" :key="category.id">
-          <td><span class="color-dot" :style="{ backgroundColor: category.color }"></span></td>
-          <td>{{ category.name }}</td>
-          <td>{{ category.type === 'income' ? 'Przychód' : 'Wydatek' }}</td>
-          <td class="form-actions">
-            <button type="button" class="btn btn-secondary btn-small" @click="startEdit(category)">Edytuj</button>
-            <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(category)">Usuń</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <LoadingIndicator v-if="isLoading" />
+    <EmptyState v-else-if="!categoriesStore.list.length" message="Brak kategorii — dodaj pierwszą poniżej." />
+    <div v-else class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Kolor</th>
+            <th>Nazwa</th>
+            <th>Typ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="category in categoriesStore.list" :key="category.id">
+            <td><span class="color-dot" :style="{ backgroundColor: category.color }"></span></td>
+            <td>{{ category.name }}</td>
+            <td>{{ category.type === 'income' ? 'Przychód' : 'Wydatek' }}</td>
+            <td class="form-actions">
+              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(category)">Edytuj</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(category)">Usuń</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <form @submit.prevent="handleSubmit" class="entity-form">
       <h2>{{ editingId !== null ? 'Edytuj kategorię' : 'Nowa kategoria' }}</h2>
@@ -129,7 +140,7 @@ onMounted(() => {
         <input v-model="form.icon" type="text" maxlength="50" />
       </label>
 
-      <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+      <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
         <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj kategorię' }}</button>

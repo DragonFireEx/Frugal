@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import axios from 'axios'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import EmptyState from '../components/EmptyState.vue'
+import ErrorAlert from '../components/ErrorAlert.vue'
+import LoadingIndicator from '../components/LoadingIndicator.vue'
+import { useApiError } from '../composables/useApiError'
 import { useCategoriesStore } from '../stores/categories'
 import { useTransactionsStore, type TransactionPayload } from '../stores/transactions'
 import { useCurrency } from '../composables/useCurrency'
@@ -11,7 +14,9 @@ const categoriesStore = useCategoriesStore()
 const transactionsStore = useTransactionsStore()
 const { formatCurrency } = useCurrency()
 const { formatDate } = useDateFormat()
+const { extractErrorMessage } = useApiError()
 
+const isLoading = ref(true)
 const errorMessage = ref('')
 const editingId = ref<number | null>(null)
 
@@ -46,7 +51,11 @@ function startEdit(transaction: Transaction): void {
 }
 
 async function loadTransactions(): Promise<void> {
-  await transactionsStore.fetchByMonth(monthFilter.value, categoryFilter.value || undefined)
+  try {
+    await transactionsStore.fetchByMonth(monthFilter.value, categoryFilter.value || undefined)
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się pobrać transakcji.')
+  }
 }
 
 async function handleSubmit(): Promise<void> {
@@ -67,9 +76,7 @@ async function handleSubmit(): Promise<void> {
     }
     resetForm()
   } catch (error) {
-    errorMessage.value = axios.isAxiosError(error)
-      ? (error.response?.data?.errors?.categoryId ?? error.response?.data?.error ?? 'Nie udało się zapisać transakcji.')
-      : 'Nie udało się zapisać transakcji.'
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać transakcji.')
   }
 }
 
@@ -83,9 +90,7 @@ async function handleDelete(transaction: Transaction): Promise<void> {
   try {
     await transactionsStore.remove(transaction.id)
   } catch (error) {
-    errorMessage.value = axios.isAxiosError(error)
-      ? (error.response?.data?.error ?? 'Nie udało się usunąć transakcji.')
-      : 'Nie udało się usunąć transakcji.'
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się usunąć transakcji.')
   }
 }
 
@@ -94,11 +99,17 @@ const hasCategories = computed(() => categoriesStore.list.length > 0)
 watch([monthFilter, categoryFilter], loadTransactions)
 
 onMounted(async () => {
-  if (categoriesStore.list.length === 0) {
-    await categoriesStore.fetchAll()
+  try {
+    if (categoriesStore.list.length === 0) {
+      await categoriesStore.fetchAll()
+    }
+    resetForm()
+    await loadTransactions()
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować danych.')
+  } finally {
+    isLoading.value = false
   }
-  resetForm()
-  await loadTransactions()
 })
 </script>
 
@@ -123,29 +134,36 @@ onMounted(async () => {
       </label>
     </div>
 
-    <table v-if="transactionsStore.list.length" class="data-table">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Kategoria</th>
-          <th>Kwota</th>
-          <th>Opis</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="transaction in transactionsStore.list" :key="transaction.id">
-          <td>{{ formatDate(transaction.date) }}</td>
-          <td>{{ categoryName(transaction.categoryId) }}</td>
-          <td>{{ formatCurrency(transaction.amount) }}</td>
-          <td>{{ transaction.description ?? '—' }}</td>
-          <td class="form-actions">
-            <button type="button" class="btn btn-secondary btn-small" @click="startEdit(transaction)">Edytuj</button>
-            <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(transaction)">Usuń</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <LoadingIndicator v-if="isLoading" />
+    <EmptyState
+      v-else-if="!transactionsStore.list.length"
+      message="Brak transakcji w wybranym miesiącu — dodaj pierwszą poniżej."
+    />
+    <div v-else class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Kategoria</th>
+            <th>Kwota</th>
+            <th>Opis</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="transaction in transactionsStore.list" :key="transaction.id">
+            <td>{{ formatDate(transaction.date) }}</td>
+            <td>{{ categoryName(transaction.categoryId) }}</td>
+            <td>{{ formatCurrency(transaction.amount) }}</td>
+            <td>{{ transaction.description ?? '—' }}</td>
+            <td class="form-actions">
+              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(transaction)">Edytuj</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(transaction)">Usuń</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <form v-if="hasCategories" @submit.prevent="handleSubmit" class="entity-form">
       <h2>{{ editingId !== null ? 'Edytuj transakcję' : 'Nowa transakcja' }}</h2>
@@ -174,7 +192,7 @@ onMounted(async () => {
         <input v-model="form.date" type="date" required />
       </label>
 
-      <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+      <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
         <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj transakcję' }}</button>
@@ -188,6 +206,7 @@ onMounted(async () => {
 <style scoped>
 .filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 20px;
 }

@@ -102,10 +102,16 @@ code {
 
 /* Shared primitives for the entity list+form views (Categories, Transactions, Budgets) */
 
+.table-scroll {
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+
 .data-table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .data-table th,

@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import axios from 'axios'
 import { onMounted, reactive, ref } from 'vue'
+import EmptyState from '../components/EmptyState.vue'
+import ErrorAlert from '../components/ErrorAlert.vue'
+import LoadingIndicator from '../components/LoadingIndicator.vue'
+import { useApiError } from '../composables/useApiError'
 import { useBudgetsStore, type BudgetPayload } from '../stores/budgets'
 import { useCategoriesStore } from '../stores/categories'
 import { useCurrency } from '../composables/useCurrency'
@@ -9,7 +12,9 @@ import type { Budget } from '../types'
 const budgetsStore = useBudgetsStore()
 const categoriesStore = useCategoriesStore()
 const { formatCurrency } = useCurrency()
+const { extractErrorMessage } = useApiError()
 
+const isLoading = ref(true)
 const errorMessage = ref('')
 const editingId = ref<number | null>(null)
 
@@ -50,18 +55,22 @@ async function handleSubmit(): Promise<void> {
     }
     resetForm()
   } catch (error) {
-    errorMessage.value = axios.isAxiosError(error)
-      ? (error.response?.data?.errors?.categoryId ?? error.response?.data?.error ?? 'Nie udało się zapisać budżetu.')
-      : 'Nie udało się zapisać budżetu.'
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać budżetu.')
   }
 }
 
 onMounted(async () => {
-  if (categoriesStore.list.length === 0) {
-    await categoriesStore.fetchAll()
+  try {
+    if (categoriesStore.list.length === 0) {
+      await categoriesStore.fetchAll()
+    }
+    resetForm()
+    await budgetsStore.fetchAll()
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować danych.')
+  } finally {
+    isLoading.value = false
   }
-  resetForm()
-  await budgetsStore.fetchAll()
 })
 </script>
 
@@ -69,24 +78,28 @@ onMounted(async () => {
   <div class="budgets-view">
     <h1>Budżety</h1>
 
-    <table v-if="budgetsStore.list.length" class="data-table">
-      <thead>
-        <tr>
-          <th>Kategoria</th>
-          <th>Miesięczny limit</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="budget in budgetsStore.list" :key="budget.id">
-          <td>{{ categoryName(budget.categoryId) }}</td>
-          <td>{{ formatCurrency(budget.monthlyLimit) }}</td>
-          <td class="form-actions">
-            <button type="button" class="btn btn-secondary btn-small" @click="startEdit(budget)">Edytuj</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <LoadingIndicator v-if="isLoading" />
+    <EmptyState v-else-if="!budgetsStore.list.length" message="Brak budżetów — ustaw pierwszy limit poniżej." />
+    <div v-else class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Kategoria</th>
+            <th>Miesięczny limit</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="budget in budgetsStore.list" :key="budget.id">
+            <td>{{ categoryName(budget.categoryId) }}</td>
+            <td>{{ formatCurrency(budget.monthlyLimit) }}</td>
+            <td class="form-actions">
+              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(budget)">Edytuj</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <form v-if="categoriesStore.list.length" @submit.prevent="handleSubmit" class="entity-form">
       <h2>{{ editingId !== null ? 'Edytuj budżet' : 'Nowy budżet' }}</h2>
@@ -105,7 +118,7 @@ onMounted(async () => {
         <input v-model="form.monthlyLimit" type="number" step="0.01" min="0.01" required />
       </label>
 
-      <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+      <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
         <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj budżet' }}</button>

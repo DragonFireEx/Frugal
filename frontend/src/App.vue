@@ -34,12 +34,15 @@ function handleLogout(): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .app-nav nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
@@ -49,5 +52,6 @@ function handleLogout(): void {
 
 .app-main {
   padding: 20px;
+  min-width: 0;
 }
 </style>

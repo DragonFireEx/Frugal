@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import axios from 'axios'
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import ErrorAlert from '../components/ErrorAlert.vue'
+import { useApiError } from '../composables/useApiError'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { extractErrorMessage } = useApiError()
 
 const email = ref('')
 const password = ref('')
@@ -20,9 +22,7 @@ async function handleSubmit(): Promise<void> {
     await authStore.login(email.value, password.value)
     await router.push('/')
   } catch (error) {
-    errorMessage.value = axios.isAxiosError(error)
-      ? (error.response?.data?.error ?? error.response?.data?.message ?? 'Nie udało się zalogować.')
-      : 'Nie udało się zalogować.'
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się zalogować.')
   } finally {
     isSubmitting.value = false
   }
@@ -33,7 +33,7 @@ async function handleSubmit(): Promise<void> {
   <div class="auth-view">
     <h1>Zaloguj się</h1>
 
-    <form @submit.prevent="handleSubmit">
+    <form @submit.prevent="handleSubmit" class="entity-form">
       <label>
         Email
         <input v-model="email" type="email" required autocomplete="email" />
@@ -44,9 +44,9 @@ async function handleSubmit(): Promise<void> {
         <input v-model="password" type="password" required autocomplete="current-password" />
       </label>
 
-      <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+      <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
-      <button type="submit" :disabled="isSubmitting">Zaloguj się</button>
+      <button type="submit" class="btn" :disabled="isSubmitting">Zaloguj się</button>
     </form>
 
     <p>
@@ -60,47 +60,5 @@ async function handleSubmit(): Promise<void> {
   max-width: 360px;
   margin: 40px auto;
   text-align: left;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
-}
-
-input {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font: inherit;
-}
-
-button {
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: white;
-  font: inherit;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.form-error {
-  color: #dc2626;
-  font-size: 14px;
-  margin: 0;
 }
 </style>
