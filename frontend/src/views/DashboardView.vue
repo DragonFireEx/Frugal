@@ -68,13 +68,16 @@ async function loadData(): Promise<void> {
       await categoriesStore.fetchAll()
     }
     await statsStore.fetchMonthly(month.value)
-    await nextTick()
-    renderChart()
   } catch (error) {
     errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować statystyk.')
   } finally {
     isLoading.value = false
   }
+
+  // isLoading must flip before the canvas is mounted (it sits behind a
+  // v-if for the loading state), so wait a tick before rendering into it.
+  await nextTick()
+  renderChart()
 }
 
 watch(month, loadData)
