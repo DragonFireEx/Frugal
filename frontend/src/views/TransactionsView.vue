@@ -9,15 +9,17 @@ import { useTransactionsStore, type TransactionPayload } from '../stores/transac
 import { useCurrency } from '../composables/useCurrency'
 import { useDateFormat, getCurrentMonth } from '../composables/useDateFormat'
 import type { Transaction } from '../types'
+import { isBlank, isPositiveNumber } from '../utils/validators'
 
 const categoriesStore = useCategoriesStore()
 const transactionsStore = useTransactionsStore()
 const { formatCurrency } = useCurrency()
 const { formatDate } = useDateFormat()
-const { extractErrorMessage } = useApiError()
+const { extractErrorMessage, extractViolations } = useApiError()
 
 const isLoading = ref(true)
 const errorMessage = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 const editingId = ref<number | null>(null)
 
 const monthFilter = ref(transactionsStore.currentMonth)
@@ -36,6 +38,7 @@ function categoryName(categoryId: number): string {
 
 function resetForm(): void {
   editingId.value = null
+  fieldErrors.value = {}
   form.categoryId = categoriesStore.list[0]?.id ?? 0
   form.amount = ''
   form.description = ''
@@ -58,8 +61,30 @@ async function loadTransactions(): Promise<void> {
   }
 }
 
+function validate(): boolean {
+  const errors: Record<string, string> = {}
+
+  if (!form.categoryId) {
+    errors.categoryId = 'Kategoria jest wymagana.'
+  }
+  if (!isPositiveNumber(form.amount)) {
+    errors.amount = 'Kwota musi być liczbą dodatnią.'
+  }
+  if (isBlank(form.date)) {
+    errors.date = 'Data jest wymagana.'
+  }
+
+  fieldErrors.value = errors
+
+  return Object.keys(errors).length === 0
+}
+
 async function handleSubmit(): Promise<void> {
   errorMessage.value = ''
+
+  if (!validate()) {
+    return
+  }
 
   const payload: TransactionPayload = {
     categoryId: form.categoryId,
@@ -76,7 +101,12 @@ async function handleSubmit(): Promise<void> {
     }
     resetForm()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać transakcji.')
+    const violations = extractViolations(error)
+    if (violations) {
+      fieldErrors.value = violations
+    } else {
+      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać transakcji.')
+    }
   }
 }
 
@@ -165,7 +195,7 @@ onMounted(async () => {
       </table>
     </div>
 
-    <form v-if="hasCategories" @submit.prevent="handleSubmit" class="entity-form">
+    <form v-if="hasCategories" @submit.prevent="handleSubmit" class="entity-form" novalidate>
       <h2>{{ editingId !== null ? 'Edytuj transakcję' : 'Nowa transakcja' }}</h2>
 
       <label>
@@ -175,11 +205,13 @@ onMounted(async () => {
             {{ category.name }}
           </option>
         </select>
+        <span v-if="fieldErrors.categoryId" class="field-error">{{ fieldErrors.categoryId }}</span>
       </label>
 
       <label>
         Kwota
-        <input v-model="form.amount" type="number" step="0.01" min="0.01" required />
+        <input v-model="form.amount" type="text" inputmode="decimal" />
+        <span v-if="fieldErrors.amount" class="field-error">{{ fieldErrors.amount }}</span>
       </label>
 
       <label>
@@ -189,7 +221,8 @@ onMounted(async () => {
 
       <label>
         Data
-        <input v-model="form.date" type="date" required />
+        <input v-model="form.date" type="date" />
+        <span v-if="fieldErrors.date" class="field-error">{{ fieldErrors.date }}</span>
       </label>
 
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />

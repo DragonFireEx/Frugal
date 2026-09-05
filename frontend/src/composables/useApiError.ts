@@ -3,7 +3,7 @@ import axios from 'axios'
 interface ApiErrorBody {
   error?: string
   message?: string
-  errors?: Record<string, string>
+  violations?: Record<string, string>
 }
 
 export function useApiError() {
@@ -13,8 +13,17 @@ export function useApiError() {
     }
 
     const data = error.response?.data as ApiErrorBody | undefined
-    return data?.error ?? data?.message ?? Object.values(data?.errors ?? {})[0] ?? fallback
+    return data?.error ?? data?.message ?? Object.values(data?.violations ?? {})[0] ?? fallback
   }
 
-  return { extractErrorMessage }
+  function extractViolations(error: unknown): Record<string, string> | null {
+    if (!axios.isAxiosError(error)) {
+      return null
+    }
+
+    const data = error.response?.data as ApiErrorBody | undefined
+    return data?.violations ?? null
+  }
+
+  return { extractErrorMessage, extractViolations }
 }

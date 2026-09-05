@@ -8,14 +8,16 @@ import { useBudgetsStore, type BudgetPayload } from '../stores/budgets'
 import { useCategoriesStore } from '../stores/categories'
 import { useCurrency } from '../composables/useCurrency'
 import type { Budget } from '../types'
+import { isPositiveNumber } from '../utils/validators'
 
 const budgetsStore = useBudgetsStore()
 const categoriesStore = useCategoriesStore()
 const { formatCurrency } = useCurrency()
-const { extractErrorMessage } = useApiError()
+const { extractErrorMessage, extractViolations } = useApiError()
 
 const isLoading = ref(true)
 const errorMessage = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 const editingId = ref<number | null>(null)
 
 const form = reactive<BudgetPayload>({
@@ -29,6 +31,7 @@ function categoryName(categoryId: number): string {
 
 function resetForm(): void {
   editingId.value = null
+  fieldErrors.value = {}
   form.categoryId = categoriesStore.list[0]?.id ?? 0
   form.monthlyLimit = ''
 }
@@ -39,8 +42,27 @@ function startEdit(budget: Budget): void {
   form.monthlyLimit = budget.monthlyLimit
 }
 
+function validate(): boolean {
+  const errors: Record<string, string> = {}
+
+  if (!form.categoryId) {
+    errors.categoryId = 'Kategoria jest wymagana.'
+  }
+  if (!isPositiveNumber(form.monthlyLimit)) {
+    errors.monthlyLimit = 'Limit musi być liczbą dodatnią.'
+  }
+
+  fieldErrors.value = errors
+
+  return Object.keys(errors).length === 0
+}
+
 async function handleSubmit(): Promise<void> {
   errorMessage.value = ''
+
+  if (!validate()) {
+    return
+  }
 
   const payload: BudgetPayload = {
     categoryId: form.categoryId,
@@ -55,7 +77,12 @@ async function handleSubmit(): Promise<void> {
     }
     resetForm()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać budżetu.')
+    const violations = extractViolations(error)
+    if (violations) {
+      fieldErrors.value = violations
+    } else {
+      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać budżetu.')
+    }
   }
 }
 
@@ -101,7 +128,7 @@ onMounted(async () => {
       </table>
     </div>
 
-    <form v-if="categoriesStore.list.length" @submit.prevent="handleSubmit" class="entity-form">
+    <form v-if="categoriesStore.list.length" @submit.prevent="handleSubmit" class="entity-form" novalidate>
       <h2>{{ editingId !== null ? 'Edytuj budżet' : 'Nowy budżet' }}</h2>
 
       <label>
@@ -111,11 +138,13 @@ onMounted(async () => {
             {{ category.name }}
           </option>
         </select>
+        <span v-if="fieldErrors.categoryId" class="field-error">{{ fieldErrors.categoryId }}</span>
       </label>
 
       <label>
         Miesięczny limit
-        <input v-model="form.monthlyLimit" type="number" step="0.01" min="0.01" required />
+        <input v-model="form.monthlyLimit" type="text" inputmode="decimal" />
+        <span v-if="fieldErrors.monthlyLimit" class="field-error">{{ fieldErrors.monthlyLimit }}</span>
       </label>
 
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />

@@ -186,3 +186,8 @@ code {
   font-size: 14px;
   margin: 0;
 }
+
+.field-error {
+  color: #dc2626;
+  font-size: 12px;
+}

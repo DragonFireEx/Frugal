@@ -6,12 +6,14 @@ import LoadingIndicator from '../components/LoadingIndicator.vue'
 import { useApiError } from '../composables/useApiError'
 import { useCategoriesStore, type CategoryPayload } from '../stores/categories'
 import type { Category } from '../types'
+import { isBlank } from '../utils/validators'
 
 const categoriesStore = useCategoriesStore()
-const { extractErrorMessage } = useApiError()
+const { extractErrorMessage, extractViolations } = useApiError()
 
 const isLoading = ref(true)
 const errorMessage = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 const editingId = ref<number | null>(null)
 
 const form = reactive<CategoryPayload>({
@@ -23,6 +25,7 @@ const form = reactive<CategoryPayload>({
 
 function resetForm(): void {
   editingId.value = null
+  fieldErrors.value = {}
   form.name = ''
   form.type = 'expense'
   form.color = '#6366f1'
@@ -37,8 +40,24 @@ function startEdit(category: Category): void {
   form.icon = category.icon
 }
 
+function validate(): boolean {
+  const errors: Record<string, string> = {}
+
+  if (isBlank(form.name)) {
+    errors.name = 'Nazwa jest wymagana.'
+  }
+
+  fieldErrors.value = errors
+
+  return Object.keys(errors).length === 0
+}
+
 async function handleSubmit(): Promise<void> {
   errorMessage.value = ''
+
+  if (!validate()) {
+    return
+  }
 
   const payload: CategoryPayload = {
     name: form.name,
@@ -55,7 +74,12 @@ async function handleSubmit(): Promise<void> {
     }
     resetForm()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać kategorii.')
+    const violations = extractViolations(error)
+    if (violations) {
+      fieldErrors.value = violations
+    } else {
+      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać kategorii.')
+    }
   }
 }
 
@@ -114,12 +138,13 @@ onMounted(async () => {
       </table>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="entity-form">
+    <form @submit.prevent="handleSubmit" class="entity-form" novalidate>
       <h2>{{ editingId !== null ? 'Edytuj kategorię' : 'Nowa kategoria' }}</h2>
 
       <label>
         Nazwa
-        <input v-model="form.name" type="text" required maxlength="100" />
+        <input v-model="form.name" type="text" maxlength="100" />
+        <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
       </label>
 
       <label>
