@@ -5,20 +5,20 @@ namespace App\Controller;
 use App\DTO\CategoryInput;
 use App\Entity\Category;
 use App\Entity\User;
+use App\Exception\ValidationFailedException;
 use App\Repository\CategoryRepository;
 use App\Security\Voter\AbstractOwnershipVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/categories')]
 class CategoryController extends AbstractController
 {
-    use ValidationErrorTrait;
-
     #[Route('', name: 'category_list', methods: ['GET'])]
     public function list(CategoryRepository $categoryRepository): JsonResponse
     {
@@ -37,7 +37,7 @@ class CategoryController extends AbstractController
 
         $errors = $validator->validate($input);
         if (count($errors) > 0) {
-            return $this->validationErrorResponse($errors);
+            throw new ValidationFailedException($errors);
         }
 
         /** @var User $user */
@@ -63,7 +63,7 @@ class CategoryController extends AbstractController
     ): JsonResponse {
         $category = $categoryRepository->find($id);
         if (!$category) {
-            return $this->json(['error' => 'Kategoria nie została znaleziona'], 404);
+            throw new NotFoundHttpException('Kategoria nie została znaleziona');
         }
 
         $this->denyAccessUnlessGranted(AbstractOwnershipVoter::OWNER, $category);
@@ -72,7 +72,7 @@ class CategoryController extends AbstractController
 
         $errors = $validator->validate($input);
         if (count($errors) > 0) {
-            return $this->validationErrorResponse($errors);
+            throw new ValidationFailedException($errors);
         }
 
         $this->applyInput($category, $input);
@@ -89,7 +89,7 @@ class CategoryController extends AbstractController
     ): JsonResponse {
         $category = $categoryRepository->find($id);
         if (!$category) {
-            return $this->json(['error' => 'Kategoria nie została znaleziona'], 404);
+            throw new NotFoundHttpException('Kategoria nie została znaleziona');
         }
 
         $this->denyAccessUnlessGranted(AbstractOwnershipVoter::OWNER, $category);

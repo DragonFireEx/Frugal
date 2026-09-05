@@ -6,6 +6,7 @@ use App\DTO\BudgetInput;
 use App\Entity\Budget;
 use App\Entity\Category;
 use App\Entity\User;
+use App\Exception\ValidationFailedException;
 use App\Repository\BudgetRepository;
 use App\Repository\CategoryRepository;
 use App\Security\Voter\AbstractOwnershipVoter;
@@ -13,13 +14,13 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/budgets')]
 class BudgetController extends AbstractController
 {
-    use ValidationErrorTrait;
     use ResolvesOwnedCategoryTrait;
 
     #[Route('', name: 'budget_list', methods: ['GET'])]
@@ -41,13 +42,10 @@ class BudgetController extends AbstractController
 
         $errors = $validator->validate($input);
         if (count($errors) > 0) {
-            return $this->validationErrorResponse($errors);
+            throw new ValidationFailedException($errors);
         }
 
         $category = $this->resolveOwnedCategory($categoryRepository, $input->categoryId);
-        if (!$category instanceof Category) {
-            return $category;
-        }
 
         /** @var User $user */
         $user = $this->getUser();
@@ -73,7 +71,7 @@ class BudgetController extends AbstractController
     ): JsonResponse {
         $budget = $budgetRepository->find($id);
         if (!$budget) {
-            return $this->json(['error' => 'Budżet nie został znaleziony'], 404);
+            throw new NotFoundHttpException('Budżet nie został znaleziony');
         }
 
         $this->denyAccessUnlessGranted(AbstractOwnershipVoter::OWNER, $budget);
@@ -82,13 +80,10 @@ class BudgetController extends AbstractController
 
         $errors = $validator->validate($input);
         if (count($errors) > 0) {
-            return $this->validationErrorResponse($errors);
+            throw new ValidationFailedException($errors);
         }
 
         $category = $this->resolveOwnedCategory($categoryRepository, $input->categoryId);
-        if (!$category instanceof Category) {
-            return $category;
-        }
 
         $this->applyInput($budget, $input, $category);
         $em->flush();

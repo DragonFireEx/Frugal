@@ -6,6 +6,7 @@ use App\DTO\TransactionInput;
 use App\Entity\Category;
 use App\Entity\Transaction;
 use App\Entity\User;
+use App\Exception\ValidationFailedException;
 use App\Repository\CategoryRepository;
 use App\Repository\TransactionRepository;
 use App\Security\Voter\AbstractOwnershipVoter;
@@ -13,13 +14,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/transactions')]
 class TransactionController extends AbstractController
 {
-    use ValidationErrorTrait;
     use ResolvesOwnedCategoryTrait;
 
     #[Route('', name: 'transaction_list', methods: ['GET'])]
@@ -27,7 +29,7 @@ class TransactionController extends AbstractController
     {
         $month = $request->query->get('month');
         if (null !== $month && !preg_match('/^\d{4}-\d{2}$/', $month)) {
-            return $this->json(['error' => 'month musi być w formacie YYYY-MM'], 400);
+            throw new BadRequestHttpException('month musi być w formacie YYYY-MM');
         }
 
         $categoryId = $request->query->get('categoryId');
@@ -52,13 +54,10 @@ class TransactionController extends AbstractController
 
         $errors = $validator->validate($input);
         if (count($errors) > 0) {
-            return $this->validationErrorResponse($errors);
+            throw new ValidationFailedException($errors);
         }
 
         $category = $this->resolveOwnedCategory($categoryRepository, $input->categoryId);
-        if (!$category instanceof Category) {
-            return $category;
-        }
 
         /** @var User $user */
         $user = $this->getUser();
@@ -85,7 +84,7 @@ class TransactionController extends AbstractController
     ): JsonResponse {
         $transaction = $transactionRepository->find($id);
         if (!$transaction) {
-            return $this->json(['error' => 'Transakcja nie została znaleziona'], 404);
+            throw new NotFoundHttpException('Transakcja nie została znaleziona');
         }
 
         $this->denyAccessUnlessGranted(AbstractOwnershipVoter::OWNER, $transaction);
@@ -94,13 +93,10 @@ class TransactionController extends AbstractController
 
         $errors = $validator->validate($input);
         if (count($errors) > 0) {
-            return $this->validationErrorResponse($errors);
+            throw new ValidationFailedException($errors);
         }
 
         $category = $this->resolveOwnedCategory($categoryRepository, $input->categoryId);
-        if (!$category instanceof Category) {
-            return $category;
-        }
 
         $this->applyInput($transaction, $input, $category);
         $em->flush();
@@ -116,7 +112,7 @@ class TransactionController extends AbstractController
     ): JsonResponse {
         $transaction = $transactionRepository->find($id);
         if (!$transaction) {
-            return $this->json(['error' => 'Transakcja nie została znaleziona'], 404);
+            throw new NotFoundHttpException('Transakcja nie została znaleziona');
         }
 
         $this->denyAccessUnlessGranted(AbstractOwnershipVoter::OWNER, $transaction);

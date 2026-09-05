@@ -3,18 +3,18 @@
 namespace App\Controller;
 
 use App\Entity\Category;
+use App\Exception\ValidationFailedException;
 use App\Repository\CategoryRepository;
 use App\Security\Voter\AbstractOwnershipVoter;
-use Symfony\Component\HttpFoundation\JsonResponse;
 
 trait ResolvesOwnedCategoryTrait
 {
-    private function resolveOwnedCategory(CategoryRepository $categoryRepository, ?int $categoryId): Category|JsonResponse
+    private function resolveOwnedCategory(CategoryRepository $categoryRepository, ?int $categoryId): Category
     {
         $category = null !== $categoryId ? $categoryRepository->find($categoryId) : null;
 
         if (!$category || !$this->isGranted(AbstractOwnershipVoter::OWNER, $category)) {
-            return $this->json(['errors' => ['categoryId' => 'Kategoria nie istnieje lub nie należy do użytkownika']], 400);
+            throw ValidationFailedException::forField('categoryId', 'Kategoria nie istnieje lub nie należy do użytkownika');
         }
 
         return $category;
