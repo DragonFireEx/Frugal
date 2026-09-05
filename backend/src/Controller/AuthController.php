@@ -2,14 +2,18 @@
 
 namespace App\Controller;
 
+use App\DTO\RegisterInput;
 use App\Entity\User;
+use App\Exception\ValidationFailedException;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api')]
 class AuthController extends AbstractController
@@ -19,27 +23,30 @@ class AuthController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $hasher,
-        UserRepository $userRepository
+        UserRepository $userRepository,
+        ValidatorInterface $validator
     ): JsonResponse {
         $data = json_decode($request->getContent(), true) ?? [];
 
-        $email = $data['email'] ?? null;
-        $password = $data['password'] ?? null;
-        $name = $data['name'] ?? null;
+        $input = new RegisterInput();
+        $input->email = $data['email'] ?? null;
+        $input->password = $data['password'] ?? null;
+        $input->name = $data['name'] ?? null;
 
-        if (!$email || !$password || !$name) {
-            return $this->json(['error' => 'email, password i name są wymagane'], 400);
+        $errors = $validator->validate($input);
+        if (count($errors) > 0) {
+            throw new ValidationFailedException($errors);
         }
 
-        if ($userRepository->findOneBy(['email' => $email])) {
-            return $this->json(['error' => 'Użytkownik z tym adresem email już istnieje'], 409);
+        if ($userRepository->findOneBy(['email' => $input->email])) {
+            throw new ConflictHttpException('Użytkownik z tym adresem email już istnieje');
         }
 
         $user = new User();
-        $user->setEmail($email);
-        $user->setName($name);
+        $user->setEmail($input->email);
+        $user->setName($input->name);
         $user->setCreatedAt(new \DateTimeImmutable());
-        $user->setPassword($hasher->hashPassword($user, $password));
+        $user->setPassword($hasher->hashPassword($user, $input->password));
 
         $em->persist($user);
         $em->flush();

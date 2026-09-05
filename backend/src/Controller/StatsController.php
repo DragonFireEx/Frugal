@@ -7,6 +7,7 @@ use App\Service\StatsCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/stats')]
@@ -18,7 +19,7 @@ class StatsController extends AbstractController
         $month = $request->query->get('month') ?? (new \DateTimeImmutable())->format('Y-m');
 
         if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-            return $this->json(['error' => 'month musi być w formacie YYYY-MM'], 400);
+            throw new BadRequestHttpException('month musi być w formacie YYYY-MM');
         }
 
         /** @var User $user */

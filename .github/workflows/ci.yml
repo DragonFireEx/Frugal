@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    container:
+      image: php:8.4-cli
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: frugal_user
+          POSTGRES_PASSWORD: frugal_pass
+          POSTGRES_DB: frugal
+        options: >-
+          --health-cmd="pg_isready -U frugal_user"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_SECRET: ci-test-secret
+      DATABASE_URL: "postgresql://frugal_user:frugal_pass@postgres:5432/frugal?serverVersion=16&charset=utf8"
+      JWT_SECRET_KEY: "%kernel.project_dir%/config/jwt/private.pem"
+      JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
+      JWT_PASSPHRASE: ci-test-passphrase
+      CORS_ALLOW_ORIGIN: '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies and PHP extensions
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git unzip libpq-dev libicu-dev $PHPIZE_DEPS
+          docker-php-ext-install pdo pdo_pgsql intl
+
+      - name: Install Composer
+        run: |
+          EXPECTED_SIGNATURE="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          ACTUAL_SIGNATURE="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+          if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]; then
+            echo "ERROR: Invalid composer installer signature"
+            rm composer-setup.php
+            exit 1
+          fi
+          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+          rm composer-setup.php
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint YAML config
+        run: php bin/console lint:yaml config --env=test
+
+      - name: Generate JWT keypair
+        run: php bin/console lexik:jwt:generate-keypair --no-interaction
+
+      - name: Create test database
+        run: php bin/console doctrine:database:create --env=test --no-interaction
+
+      - name: Run migrations (test env)
+        run: php bin/console doctrine:migrations:migrate --env=test --no-interaction
+
+      - name: Run tests
+        run: php bin/phpunit
+
+  frontend:
+    runs-on: ubuntu-latest
+    container:
+      image: node:20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
