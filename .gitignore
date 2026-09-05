@@ -1,1 +1,4 @@
 *.env
+# Symfony's own convention: backend/.env is committed with safe defaults;
+# backend/.gitignore separately ignores backend/.env.local for real secrets.
+!backend/.env
