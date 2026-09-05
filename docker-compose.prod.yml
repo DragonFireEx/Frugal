@@ -1,0 +1,24 @@
+# Production override for the frontend service — builds a static bundle and
+# serves it through nginx instead of running the Vite dev server. Usage:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+#
+# Everything else (backend, database, nginx reverse proxy) is unchanged.
+#
+# VITE_API_URL is baked into the static bundle at BUILD time, not read at
+# container runtime — adjust build.args below to the real public API URL
+# before deploying anywhere but localhost.
+services:
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+      args:
+        VITE_API_URL: http://localhost:8080/api
+    # The base file's dev bind-mounts and port would otherwise be merged in
+    # (Compose appends/merges lists across files by default) — reset them
+    # since this container serves a pre-built bundle, not live source.
+    ports: !override
+      - "5173:80"
+    volumes: !reset []
+    environment: !reset {}
