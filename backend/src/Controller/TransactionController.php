@@ -12,6 +12,7 @@ use App\Repository\CategoryRepository;
 use App\Repository\TagRepository;
 use App\Repository\TransactionRepository;
 use App\Security\Voter\AbstractOwnershipVoter;
+use App\Service\BudgetExceededNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
@@ -94,7 +95,8 @@ class TransactionController extends AbstractController
         EntityManagerInterface $em,
         ValidatorInterface $validator,
         CategoryRepository $categoryRepository,
-        TagRepository $tagRepository
+        TagRepository $tagRepository,
+        BudgetExceededNotifier $budgetExceededNotifier
     ): JsonResponse {
         $input = $this->mapInput($request);
 
@@ -110,6 +112,9 @@ class TransactionController extends AbstractController
 
         $tags = $this->resolveOwnedTags($tagRepository, $user, $input->tagIds);
 
+        $month = substr($input->date, 0, 7);
+        $wasExceeded = $budgetExceededNotifier->isExceeded($user, $category, $month);
+
         $transaction = new Transaction();
         $transaction->setOwner($user);
         $transaction->setCreatedAt(new \DateTimeImmutable());
@@ -117,6 +122,8 @@ class TransactionController extends AbstractController
 
         $em->persist($transaction);
         $em->flush();
+
+        $budgetExceededNotifier->notifyIfNewlyExceeded($user, $category, $month, $wasExceeded);
 
         return $this->json($this->serialize($transaction), 201);
     }
@@ -129,7 +136,8 @@ class TransactionController extends AbstractController
         CategoryRepository $categoryRepository,
         TagRepository $tagRepository,
         EntityManagerInterface $em,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        BudgetExceededNotifier $budgetExceededNotifier
     ): JsonResponse {
         $transaction = $transactionRepository->find($id);
         if (!$transaction) {
@@ -152,8 +160,13 @@ class TransactionController extends AbstractController
 
         $tags = $this->resolveOwnedTags($tagRepository, $user, $input->tagIds);
 
+        $month = substr($input->date, 0, 7);
+        $wasExceeded = $budgetExceededNotifier->isExceeded($user, $category, $month);
+
         $this->applyInput($transaction, $input, $category, $tags);
         $em->flush();
+
+        $budgetExceededNotifier->notifyIfNewlyExceeded($user, $category, $month, $wasExceeded);
 
         return $this->json($this->serialize($transaction));
     }

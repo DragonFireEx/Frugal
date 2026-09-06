@@ -27,9 +27,20 @@ services:
     environment:
       APP_ENV: dev
       DATABASE_URL: "postgresql://frugal_user:frugal_pass@database:5432/frugal?serverVersion=16&charset=utf8"
+      MAILER_DSN: "smtp://mailer:1025"
     depends_on:
       database:
         condition: service_healthy
+
+  # Catches budget-exceeded notification emails in dev instead of discarding
+  # them (.env's MAILER_DSN=null://) or requiring real SMTP credentials. Web
+  # UI at http://localhost:8025.
+  mailer:
+    image: axllent/mailpit
+    container_name: frugal_mailer
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
 
   scheduler:
     build:
@@ -41,6 +52,7 @@ services:
     environment:
       APP_ENV: dev
       DATABASE_URL: "postgresql://frugal_user:frugal_pass@database:5432/frugal?serverVersion=16&charset=utf8"
+      MAILER_DSN: "smtp://mailer:1025"
     depends_on:
       database:
         condition: service_healthy
