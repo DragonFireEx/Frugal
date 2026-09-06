@@ -9,6 +9,7 @@ export interface TransactionPayload {
   amount: string
   description: string | null
   date: string
+  tagIds: number[]
 }
 
 export const useTransactionsStore = defineStore('transactions', () => {

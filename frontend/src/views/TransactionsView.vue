@@ -5,6 +5,7 @@ import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
 import { useApiError } from '../composables/useApiError'
 import { useCategoriesStore } from '../stores/categories'
+import { useTagsStore } from '../stores/tags'
 import { useTransactionsStore, type TransactionPayload } from '../stores/transactions'
 import { useCurrency } from '../composables/useCurrency'
 import { useDateFormat, getCurrentMonth } from '../composables/useDateFormat'
@@ -12,6 +13,7 @@ import type { Transaction } from '../types'
 import { isBlank, isPositiveNumber } from '../utils/validators'
 
 const categoriesStore = useCategoriesStore()
+const tagsStore = useTagsStore()
 const transactionsStore = useTransactionsStore()
 const { formatCurrency } = useCurrency()
 const { formatDate } = useDateFormat()
@@ -30,10 +32,22 @@ const form = reactive({
   amount: '',
   description: '',
   date: getCurrentMonth() + '-01',
+  tagIds: [] as number[],
 })
 
 function categoryName(categoryId: number): string {
   return categoriesStore.list.find((category) => category.id === categoryId)?.name ?? '—'
+}
+
+function tagNames(tagIds: number[]): string {
+  if (!tagIds.length) {
+    return '—'
+  }
+
+  return tagIds
+    .map((tagId) => tagsStore.list.find((tag) => tag.id === tagId)?.name)
+    .filter((name): name is string => Boolean(name))
+    .join(', ')
 }
 
 function resetForm(): void {
@@ -43,6 +57,7 @@ function resetForm(): void {
   form.amount = ''
   form.description = ''
   form.date = new Date().toISOString().slice(0, 10)
+  form.tagIds = []
 }
 
 function startEdit(transaction: Transaction): void {
@@ -51,6 +66,7 @@ function startEdit(transaction: Transaction): void {
   form.amount = transaction.amount
   form.description = transaction.description ?? ''
   form.date = transaction.date
+  form.tagIds = [...transaction.tagIds]
 }
 
 async function loadTransactions(): Promise<void> {
@@ -91,6 +107,7 @@ async function handleSubmit(): Promise<void> {
     amount: form.amount,
     description: form.description.trim() ? form.description.trim() : null,
     date: form.date,
+    tagIds: form.tagIds,
   }
 
   try {
@@ -149,6 +166,9 @@ onMounted(async () => {
     if (categoriesStore.list.length === 0) {
       await categoriesStore.fetchAll()
     }
+    if (tagsStore.list.length === 0) {
+      await tagsStore.fetchAll()
+    }
     resetForm()
     await loadTransactions()
   } catch (error) {
@@ -195,6 +215,7 @@ onMounted(async () => {
             <th>Kategoria</th>
             <th>Kwota</th>
             <th>Opis</th>
+            <th>Tagi</th>
             <th></th>
           </tr>
         </thead>
@@ -204,6 +225,7 @@ onMounted(async () => {
             <td>{{ categoryName(transaction.categoryId) }}</td>
             <td>{{ formatCurrency(transaction.amount) }}</td>
             <td>{{ transaction.description ?? '—' }}</td>
+            <td>{{ tagNames(transaction.tagIds) }}</td>
             <td class="form-actions">
               <button type="button" class="btn btn-secondary btn-small" @click="startEdit(transaction)">Edytuj</button>
               <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(transaction)">Usuń</button>
@@ -243,6 +265,14 @@ onMounted(async () => {
         <span v-if="fieldErrors.date" class="field-error">{{ fieldErrors.date }}</span>
       </label>
 
+      <fieldset v-if="tagsStore.list.length" class="tag-fieldset">
+        <legend>Tagi (opcjonalnie)</legend>
+        <label v-for="tag in tagsStore.list" :key="tag.id" class="tag-checkbox">
+          <input type="checkbox" :value="tag.id" v-model="form.tagIds" />
+          {{ tag.name }}
+        </label>
+      </fieldset>
+
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
@@ -279,5 +309,26 @@ onMounted(async () => {
 
 .filters .btn {
   align-self: flex-end;
+}
+
+.tag-fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px 12px;
+}
+
+.tag-fieldset legend {
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.tag-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
 }
 </style>

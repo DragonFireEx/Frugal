@@ -38,6 +38,11 @@ const router = createRouter({
       component: () => import('../views/CategoriesView.vue'),
     },
     {
+      path: '/tags',
+      name: 'tags',
+      component: () => import('../views/TagsView.vue'),
+    },
+    {
       path: '/budgets',
       name: 'budgets',
       component: () => import('../views/BudgetsView.vue'),

@@ -20,6 +20,7 @@ function handleLogout(): void {
         <RouterLink to="/">Dashboard</RouterLink>
         <RouterLink to="/transactions">Transakcje</RouterLink>
         <RouterLink to="/categories">Kategorie</RouterLink>
+        <RouterLink to="/tags">Tagi</RouterLink>
         <RouterLink to="/budgets">Budżety</RouterLink>
       </nav>
       <div class="app-nav-actions">

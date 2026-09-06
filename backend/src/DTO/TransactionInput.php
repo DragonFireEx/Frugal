@@ -19,4 +19,10 @@ class TransactionInput
     #[Assert\NotBlank]
     #[Assert\Date]
     public ?string $date = null;
+
+    /**
+     * @var int[]
+     */
+    #[Assert\All([new Assert\Type('integer')])]
+    public array $tagIds = [];
 }

@@ -4,10 +4,12 @@ namespace App\Controller;
 
 use App\DTO\TransactionInput;
 use App\Entity\Category;
+use App\Entity\Tag;
 use App\Entity\Transaction;
 use App\Entity\User;
 use App\Exception\ValidationFailedException;
 use App\Repository\CategoryRepository;
+use App\Repository\TagRepository;
 use App\Repository\TransactionRepository;
 use App\Security\Voter\AbstractOwnershipVoter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -91,7 +93,8 @@ class TransactionController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         ValidatorInterface $validator,
-        CategoryRepository $categoryRepository
+        CategoryRepository $categoryRepository,
+        TagRepository $tagRepository
     ): JsonResponse {
         $input = $this->mapInput($request);
 
@@ -105,10 +108,12 @@ class TransactionController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
+        $tags = $this->resolveOwnedTags($tagRepository, $user, $input->tagIds);
+
         $transaction = new Transaction();
         $transaction->setOwner($user);
         $transaction->setCreatedAt(new \DateTimeImmutable());
-        $this->applyInput($transaction, $input, $category);
+        $this->applyInput($transaction, $input, $category, $tags);
 
         $em->persist($transaction);
         $em->flush();
@@ -122,6 +127,7 @@ class TransactionController extends AbstractController
         Request $request,
         TransactionRepository $transactionRepository,
         CategoryRepository $categoryRepository,
+        TagRepository $tagRepository,
         EntityManagerInterface $em,
         ValidatorInterface $validator
     ): JsonResponse {
@@ -141,7 +147,12 @@ class TransactionController extends AbstractController
 
         $category = $this->resolveOwnedCategory($categoryRepository, $input->categoryId);
 
-        $this->applyInput($transaction, $input, $category);
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $tags = $this->resolveOwnedTags($tagRepository, $user, $input->tagIds);
+
+        $this->applyInput($transaction, $input, $category, $tags);
         $em->flush();
 
         return $this->json($this->serialize($transaction));
@@ -175,16 +186,49 @@ class TransactionController extends AbstractController
         $input->amount = isset($data['amount']) ? (string) $data['amount'] : null;
         $input->description = $data['description'] ?? null;
         $input->date = $data['date'] ?? null;
+        $input->tagIds = isset($data['tagIds']) && is_array($data['tagIds'])
+            ? array_map(static fn ($id) => (int) $id, $data['tagIds'])
+            : [];
 
         return $input;
     }
 
-    private function applyInput(Transaction $transaction, TransactionInput $input, Category $category): void
+    /**
+     * @param int[] $tagIds
+     *
+     * @return Tag[]
+     */
+    private function resolveOwnedTags(TagRepository $tagRepository, User $owner, array $tagIds): array
+    {
+        if ([] === $tagIds) {
+            return [];
+        }
+
+        $tags = $tagRepository->findByIdsForOwner($owner, $tagIds);
+
+        if (count($tags) !== count(array_unique($tagIds))) {
+            throw ValidationFailedException::forField('tagIds', 'Jeden lub więcej tagów nie istnieje lub nie należy do użytkownika');
+        }
+
+        return $tags;
+    }
+
+    /**
+     * @param Tag[] $tags
+     */
+    private function applyInput(Transaction $transaction, TransactionInput $input, Category $category, array $tags): void
     {
         $transaction->setCategory($category);
         $transaction->setAmount($input->amount);
         $transaction->setDescription($input->description);
         $transaction->setDate(new \DateTimeImmutable($input->date));
+
+        foreach ($transaction->getTags()->toArray() as $existingTag) {
+            $transaction->removeTag($existingTag);
+        }
+        foreach ($tags as $tag) {
+            $transaction->addTag($tag);
+        }
     }
 
     private function serialize(Transaction $transaction): array
@@ -196,6 +240,10 @@ class TransactionController extends AbstractController
             'description' => $transaction->getDescription(),
             'date' => $transaction->getDate()->format('Y-m-d'),
             'createdAt' => $transaction->getCreatedAt()->format(DATE_ATOM),
+            // array_values() resets keys: ArrayCollection leaves gaps after
+            // remove()+add() cycles, which would otherwise serialize this as
+            // a JSON object instead of an array.
+            'tagIds' => array_values(array_map(static fn (Tag $tag) => $tag->getId(), $transaction->getTags()->toArray())),
         ];
     }
 }
