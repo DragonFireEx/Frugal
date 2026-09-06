@@ -22,6 +22,7 @@ function handleLogout(): void {
         <RouterLink to="/categories">Kategorie</RouterLink>
         <RouterLink to="/tags">Tagi</RouterLink>
         <RouterLink to="/budgets">Budżety</RouterLink>
+        <RouterLink to="/recurring-transactions">Cykliczne</RouterLink>
       </nav>
       <div class="app-nav-actions">
         <button type="button" class="btn btn-secondary btn-small" @click="themeStore.toggle()">

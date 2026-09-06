@@ -31,6 +31,24 @@ services:
       database:
         condition: service_healthy
 
+  scheduler:
+    build:
+      context: ./backend
+    container_name: frugal_scheduler
+    restart: unless-stopped
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: "postgresql://frugal_user:frugal_pass@database:5432/frugal?serverVersion=16&charset=utf8"
+    depends_on:
+      database:
+        condition: service_healthy
+    # No dedicated job scheduler (Symfony Scheduler, cron) is installed in the
+    # image, so this loop just re-runs the (idempotent) generation command
+    # hourly - proportionate to a single-user app's needs.
+    entrypoint: ["sh", "-c", "while true; do php bin/console app:generate-recurring-transactions --no-interaction; sleep 3600; done"]
+
   nginx:
     image: nginx:alpine
     container_name: frugal_nginx
