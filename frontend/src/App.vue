@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useThemeStore } from './stores/theme'
 
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 const router = useRouter()
 
 function handleLogout(): void {
@@ -20,7 +22,12 @@ function handleLogout(): void {
         <RouterLink to="/categories">Kategorie</RouterLink>
         <RouterLink to="/budgets">Budżety</RouterLink>
       </nav>
-      <button type="button" @click="handleLogout">Wyloguj</button>
+      <div class="app-nav-actions">
+        <button type="button" class="btn btn-secondary btn-small" @click="themeStore.toggle()">
+          {{ themeStore.theme === 'dark' ? 'Jasny motyw' : 'Ciemny motyw' }}
+        </button>
+        <button type="button" @click="handleLogout">Wyloguj</button>
+      </div>
     </header>
 
     <main class="app-main">
@@ -44,6 +51,12 @@ function handleLogout(): void {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+}
+
+.app-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .app-nav a.router-link-active {
