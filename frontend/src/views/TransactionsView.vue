@@ -110,6 +110,22 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
+async function handleExport(): Promise<void> {
+  errorMessage.value = ''
+
+  try {
+    const blob = await transactionsStore.exportCsv(monthFilter.value)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `transakcje-${monthFilter.value}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się wyeksportować transakcji.')
+  }
+}
+
 async function handleDelete(transaction: Transaction): Promise<void> {
   if (!confirm('Usunąć tę transakcję?')) {
     return
@@ -162,6 +178,8 @@ onMounted(async () => {
           </option>
         </select>
       </label>
+
+      <button type="button" class="btn btn-secondary" @click="handleExport">Eksportuj CSV</button>
     </div>
 
     <LoadingIndicator v-if="isLoading" />
@@ -257,5 +275,9 @@ onMounted(async () => {
   border: 1px solid var(--border);
   border-radius: 6px;
   font: inherit;
+}
+
+.filters .btn {
+  align-self: flex-end;
 }
 </style>
