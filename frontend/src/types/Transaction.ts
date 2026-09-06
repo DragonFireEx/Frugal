@@ -5,4 +5,5 @@ export interface Transaction {
   description: string | null
   date: string
   createdAt: string
+  tagIds: number[]
 }

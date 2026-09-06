@@ -38,6 +38,16 @@ const router = createRouter({
       component: () => import('../views/CategoriesView.vue'),
     },
     {
+      path: '/tags',
+      name: 'tags',
+      component: () => import('../views/TagsView.vue'),
+    },
+    {
+      path: '/recurring-transactions',
+      name: 'recurring-transactions',
+      component: () => import('../views/RecurringTransactionsView.vue'),
+    },
+    {
       path: '/budgets',
       name: 'budgets',
       component: () => import('../views/BudgetsView.vue'),

@@ -43,4 +43,22 @@ class TransactionRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * @return Transaction[]
+     */
+    public function findByYear(User $owner, string $year): array
+    {
+        $start = new \DateTimeImmutable($year.'-01-01');
+        $end = $start->modify('+1 year');
+
+        return $this->createQueryBuilder('t')
+            ->andWhere('t.owner = :owner')
+            ->andWhere('t.date >= :start AND t.date < :end')
+            ->setParameter('owner', $owner)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->getQuery()
+            ->getResult();
+    }
 }

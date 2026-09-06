@@ -70,4 +70,41 @@ class StatsCalculator
             'byCategory' => array_values($byCategory),
         ];
     }
+
+    /**
+     * @return array{year: string, months: list<array{month: string, income: string, expense: string, balance: string}>}
+     */
+    public function calculateYearly(User $owner, string $year): array
+    {
+        $transactions = $this->transactionRepository->findByYear($owner, $year);
+
+        $months = [];
+        for ($i = 1; $i <= 12; ++$i) {
+            $key = sprintf('%s-%02d', $year, $i);
+            $months[$key] = ['month' => $key, 'income' => 0.0, 'expense' => 0.0];
+        }
+
+        foreach ($transactions as $transaction) {
+            $key = $transaction->getDate()->format('Y-m');
+            $amount = (float) $transaction->getAmount();
+
+            if (Category::TYPE_INCOME === $transaction->getCategory()->getType()) {
+                $months[$key]['income'] += $amount;
+            } else {
+                $months[$key]['expense'] += $amount;
+            }
+        }
+
+        foreach ($months as &$entry) {
+            $entry['balance'] = number_format($entry['income'] - $entry['expense'], 2, '.', '');
+            $entry['income'] = number_format($entry['income'], 2, '.', '');
+            $entry['expense'] = number_format($entry['expense'], 2, '.', '');
+        }
+        unset($entry);
+
+        return [
+            'year' => $year,
+            'months' => array_values($months),
+        ];
+    }
 }

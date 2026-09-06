@@ -9,6 +9,7 @@ export interface TransactionPayload {
   amount: string
   description: string | null
   date: string
+  tagIds: number[]
 }
 
 export const useTransactionsStore = defineStore('transactions', () => {
@@ -42,5 +43,13 @@ export const useTransactionsStore = defineStore('transactions', () => {
     list.value = list.value.filter((transaction) => transaction.id !== id)
   }
 
-  return { list, currentMonth, fetchByMonth, create, update, remove }
+  async function exportCsv(month: string): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>('/transactions/export', {
+      params: { month },
+      responseType: 'blob',
+    })
+    return data
+  }
+
+  return { list, currentMonth, fetchByMonth, create, update, remove, exportCsv }
 })

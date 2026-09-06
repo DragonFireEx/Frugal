@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink, useRouter } from 'vue-router'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import { useApiError } from '../composables/useApiError'
 import { useAuthStore } from '../stores/auth'
 import { isBlank, isValidEmail } from '../utils/validators'
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const { extractErrorMessage, extractViolations } = useApiError()
@@ -21,15 +23,15 @@ function validate(): boolean {
   const errors: Record<string, string> = {}
 
   if (isBlank(name.value)) {
-    errors.name = 'Imię jest wymagane.'
+    errors.name = t('auth.validation.nameRequired')
   }
   if (isBlank(email.value)) {
-    errors.email = 'Email jest wymagany.'
+    errors.email = t('auth.validation.emailRequired')
   } else if (!isValidEmail(email.value)) {
-    errors.email = 'Podaj prawidłowy adres email.'
+    errors.email = t('auth.validation.emailInvalid')
   }
   if (isBlank(password.value)) {
-    errors.password = 'Hasło jest wymagane.'
+    errors.password = t('auth.validation.passwordRequired')
   }
 
   fieldErrors.value = errors
@@ -54,7 +56,7 @@ async function handleSubmit(): Promise<void> {
     if (violations) {
       fieldErrors.value = violations
     } else {
-      errorMessage.value = extractErrorMessage(error, 'Nie udało się zarejestrować.')
+      errorMessage.value = extractErrorMessage(error, t('auth.registerErrorFallback'))
     }
   } finally {
     isSubmitting.value = false
@@ -64,34 +66,34 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <div class="auth-view">
-    <h1>Zarejestruj się</h1>
+    <h1>{{ t('auth.registerTitle') }}</h1>
 
     <form @submit.prevent="handleSubmit" class="entity-form" novalidate>
       <label>
-        Imię
+        {{ t('auth.name') }}
         <input v-model="name" type="text" autocomplete="name" />
         <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
       </label>
 
       <label>
-        Email
+        {{ t('auth.email') }}
         <input v-model="email" type="email" autocomplete="email" />
         <span v-if="fieldErrors.email" class="field-error">{{ fieldErrors.email }}</span>
       </label>
 
       <label>
-        Hasło
+        {{ t('auth.password') }}
         <input v-model="password" type="password" autocomplete="new-password" />
         <span v-if="fieldErrors.password" class="field-error">{{ fieldErrors.password }}</span>
       </label>
 
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
-      <button type="submit" class="btn" :disabled="isSubmitting">Zarejestruj się</button>
+      <button type="submit" class="btn" :disabled="isSubmitting">{{ t('auth.registerTitle') }}</button>
     </form>
 
     <p>
-      Masz już konto? <RouterLink to="/login">Zaloguj się</RouterLink>
+      {{ t('auth.hasAccountPrompt') }} <RouterLink to="/login">{{ t('auth.loginTitle') }}</RouterLink>
     </p>
   </div>
 </template>

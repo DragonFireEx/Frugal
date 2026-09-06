@@ -69,6 +69,10 @@ PUT    /api/budgets/{id}
 
 Every resource (`Category`, `Transaction`, `Budget`) is scoped to the logged-in user — `ownerId` in a request body is never trusted.
 
+## Budget-exceeded email notifications
+
+The first transaction that pushes a category over its monthly budget triggers an email to the owner (sent synchronously via Symfony Mailer — no queue, see `App\Service\BudgetExceededNotifier`). In the Docker Compose stack this is caught by [Mailpit](https://github.com/axllent/mailpit) instead of a real inbox — view it at `http://localhost:8025`. Outside Docker, `.env`'s `MAILER_DSN=null://null` discards mail; point it at a real SMTP transport to actually deliver.
+
 ## Error format
 
 All API errors are JSON:
