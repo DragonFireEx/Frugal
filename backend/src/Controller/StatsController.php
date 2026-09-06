@@ -27,4 +27,19 @@ class StatsController extends AbstractController
 
         return $this->json($statsCalculator->calculateMonthly($user, $month));
     }
+
+    #[Route('/yearly', name: 'stats_yearly', methods: ['GET'])]
+    public function yearly(Request $request, StatsCalculator $statsCalculator): JsonResponse
+    {
+        $year = $request->query->get('year') ?? (new \DateTimeImmutable())->format('Y');
+
+        if (!preg_match('/^\d{4}$/', $year)) {
+            throw new BadRequestHttpException('year musi być w formacie YYYY');
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+
+        return $this->json($statsCalculator->calculateYearly($user, $year));
+    }
 }

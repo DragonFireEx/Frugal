@@ -21,6 +21,11 @@ const month = ref(getCurrentMonth())
 const chartCanvas = ref<HTMLCanvasElement | null>(null)
 let chartInstance: Chart | null = null
 
+const isYearlyLoading = ref(true)
+const year = ref(String(new Date().getFullYear()))
+const yearlyChartCanvas = ref<HTMLCanvasElement | null>(null)
+let yearlyChartInstance: Chart | null = null
+
 function categoryColor(categoryId: number): string {
   return categoriesStore.list.find((category) => category.id === categoryId)?.color ?? '#9ca3af'
 }
@@ -80,12 +85,82 @@ async function loadData(): Promise<void> {
   renderChart()
 }
 
-watch(month, loadData)
+function renderYearlyChart(): void {
+  if (!yearlyChartCanvas.value || !statsStore.yearly) {
+    return
+  }
 
-onMounted(loadData)
+  const months = statsStore.yearly.months
+  const data = {
+    labels: months.map((entry) => entry.month),
+    datasets: [
+      {
+        label: 'Przychody',
+        data: months.map((entry) => Number(entry.income)),
+        borderColor: '#16a34a',
+        backgroundColor: '#16a34a',
+        tension: 0.2,
+      },
+      {
+        label: 'Wydatki',
+        data: months.map((entry) => Number(entry.expense)),
+        borderColor: '#dc2626',
+        backgroundColor: '#dc2626',
+        tension: 0.2,
+      },
+      {
+        label: 'Bilans',
+        data: months.map((entry) => Number(entry.balance)),
+        borderColor: '#6366f1',
+        backgroundColor: '#6366f1',
+        tension: 0.2,
+      },
+    ],
+  }
+
+  if (yearlyChartInstance) {
+    yearlyChartInstance.data = data
+    yearlyChartInstance.update()
+    return
+  }
+
+  yearlyChartInstance = new Chart(yearlyChartCanvas.value, {
+    type: 'line',
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+      },
+    },
+  })
+}
+
+async function loadYearly(): Promise<void> {
+  try {
+    await statsStore.fetchYearly(year.value)
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować statystyk rocznych.')
+  } finally {
+    isYearlyLoading.value = false
+  }
+
+  await nextTick()
+  renderYearlyChart()
+}
+
+watch(month, loadData)
+watch(year, loadYearly)
+
+onMounted(() => {
+  loadData()
+  loadYearly()
+})
 
 onUnmounted(() => {
   chartInstance?.destroy()
+  yearlyChartInstance?.destroy()
 })
 </script>
 
@@ -139,6 +214,22 @@ onUnmounted(() => {
         </ul>
       </template>
     </template>
+
+    <section class="yearly-section">
+      <h2>Trend roczny</h2>
+
+      <div class="filters">
+        <label>
+          Rok
+          <input v-model="year" type="number" min="2000" max="2100" step="1" />
+        </label>
+      </div>
+
+      <LoadingIndicator v-if="isYearlyLoading" />
+      <div v-else class="chart-container yearly-chart-container">
+        <canvas ref="yearlyChartCanvas"></canvas>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -235,5 +326,15 @@ onUnmounted(() => {
   border-radius: 999px;
   background: #fee2e2;
   color: #dc2626;
+}
+
+.yearly-section {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.yearly-chart-container {
+  max-width: 720px;
 }
 </style>
