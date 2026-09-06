@@ -31,6 +31,10 @@ docker compose exec frontend npm run build
 
 Runs `vue-tsc` then produces a production build in `dist/` (see the root `docker-compose.prod.yml` for how that build is actually served).
 
+## PWA / offline
+
+`vite-plugin-pwa` generates a manifest + service worker at build time (`npm run build`). The service worker precaches the app shell and uses a network-first strategy for `GET /api/*`, so opening the app offline still shows the last-fetched data — there's no offline-write support (mutations just fail offline like they would without a service worker). Not active in `npm run dev`; test it via the production build (`docker-compose.prod.yml`).
+
 ## Project structure
 
 ```
