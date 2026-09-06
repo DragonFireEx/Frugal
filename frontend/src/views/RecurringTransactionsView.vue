@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
@@ -14,6 +15,7 @@ import { useDateFormat } from '../composables/useDateFormat'
 import type { RecurringTransaction, RecurringTransactionFrequency } from '../types'
 import { isBlank, isPositiveNumber } from '../utils/validators'
 
+const { t } = useI18n()
 const categoriesStore = useCategoriesStore()
 const recurringStore = useRecurringTransactionsStore()
 const { formatCurrency } = useCurrency()
@@ -35,11 +37,11 @@ const form = reactive({
 })
 
 function categoryName(categoryId: number): string {
-  return categoriesStore.list.find((category) => category.id === categoryId)?.name ?? '—'
+  return categoriesStore.list.find((category) => category.id === categoryId)?.name ?? t('common.none')
 }
 
 function frequencyLabel(frequency: RecurringTransactionFrequency): string {
-  return frequency === 'weekly' ? 'Co tydzień' : 'Co miesiąc'
+  return frequency === 'weekly' ? t('recurring.frequencyWeekly') : t('recurring.frequencyMonthly')
 }
 
 function resetForm(): void {
@@ -67,13 +69,13 @@ function validate(): boolean {
   const errors: Record<string, string> = {}
 
   if (!form.categoryId) {
-    errors.categoryId = 'Kategoria jest wymagana.'
+    errors.categoryId = t('recurring.validation.categoryRequired')
   }
   if (!isPositiveNumber(form.amount)) {
-    errors.amount = 'Kwota musi być liczbą dodatnią.'
+    errors.amount = t('recurring.validation.amountPositive')
   }
   if (isBlank(form.nextRunDate)) {
-    errors.nextRunDate = 'Data jest wymagana.'
+    errors.nextRunDate = t('recurring.validation.dateRequired')
   }
 
   fieldErrors.value = errors
@@ -109,13 +111,13 @@ async function handleSubmit(): Promise<void> {
     if (violations) {
       fieldErrors.value = violations
     } else {
-      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać transakcji cyklicznej.')
+      errorMessage.value = extractErrorMessage(error, t('recurring.errors.saveFailed'))
     }
   }
 }
 
 async function handleDelete(recurring: RecurringTransaction): Promise<void> {
-  if (!confirm('Usunąć tę transakcję cykliczną?')) {
+  if (!confirm(t('recurring.confirmDelete'))) {
     return
   }
 
@@ -124,7 +126,7 @@ async function handleDelete(recurring: RecurringTransaction): Promise<void> {
   try {
     await recurringStore.remove(recurring.id)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się usunąć transakcji cyklicznej.')
+    errorMessage.value = extractErrorMessage(error, t('recurring.errors.deleteFailed'))
   }
 }
 
@@ -138,7 +140,7 @@ onMounted(async () => {
     resetForm()
     await recurringStore.fetchAll()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować danych.')
+    errorMessage.value = extractErrorMessage(error, t('recurring.errors.loadFailed'))
   } finally {
     isLoading.value = false
   }
@@ -147,23 +149,20 @@ onMounted(async () => {
 
 <template>
   <div class="recurring-transactions-view">
-    <h1>Transakcje cykliczne</h1>
+    <h1>{{ t('recurring.title') }}</h1>
 
     <LoadingIndicator v-if="isLoading" />
-    <EmptyState
-      v-else-if="!recurringStore.list.length"
-      message="Brak transakcji cyklicznych — dodaj pierwszą poniżej."
-    />
+    <EmptyState v-else-if="!recurringStore.list.length" :message="t('recurring.empty')" />
     <div v-else class="table-scroll">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Kategoria</th>
-            <th>Kwota</th>
-            <th>Częstotliwość</th>
-            <th>Następne wystąpienie</th>
-            <th>Aktywna</th>
-            <th>Opis</th>
+            <th>{{ t('recurring.colCategory') }}</th>
+            <th>{{ t('recurring.colAmount') }}</th>
+            <th>{{ t('recurring.colFrequency') }}</th>
+            <th>{{ t('recurring.colNextRun') }}</th>
+            <th>{{ t('recurring.colActive') }}</th>
+            <th>{{ t('recurring.colDescription') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -173,11 +172,11 @@ onMounted(async () => {
             <td>{{ formatCurrency(recurring.amount) }}</td>
             <td>{{ frequencyLabel(recurring.frequency) }}</td>
             <td>{{ formatDate(recurring.nextRunDate) }}</td>
-            <td>{{ recurring.active ? 'Tak' : 'Nie' }}</td>
-            <td>{{ recurring.description ?? '—' }}</td>
+            <td>{{ recurring.active ? t('common.yes') : t('common.no') }}</td>
+            <td>{{ recurring.description ?? t('common.none') }}</td>
             <td class="form-actions">
-              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(recurring)">Edytuj</button>
-              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(recurring)">Usuń</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(recurring)">{{ t('common.edit') }}</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(recurring)">{{ t('common.delete') }}</button>
             </td>
           </tr>
         </tbody>
@@ -185,10 +184,10 @@ onMounted(async () => {
     </div>
 
     <form v-if="hasCategories" @submit.prevent="handleSubmit" class="entity-form" novalidate>
-      <h2>{{ editingId !== null ? 'Edytuj transakcję cykliczną' : 'Nowa transakcja cykliczna' }}</h2>
+      <h2>{{ editingId !== null ? t('recurring.editTitle') : t('recurring.newTitle') }}</h2>
 
       <label>
-        Kategoria
+        {{ t('recurring.category') }}
         <select v-model="form.categoryId">
           <option v-for="category in categoriesStore.list" :key="category.id" :value="category.id">
             {{ category.name }}
@@ -198,43 +197,43 @@ onMounted(async () => {
       </label>
 
       <label>
-        Kwota
+        {{ t('recurring.amount') }}
         <input v-model="form.amount" type="text" inputmode="decimal" />
         <span v-if="fieldErrors.amount" class="field-error">{{ fieldErrors.amount }}</span>
       </label>
 
       <label>
-        Opis (opcjonalnie)
+        {{ t('recurring.description') }}
         <input v-model="form.description" type="text" maxlength="255" />
       </label>
 
       <label>
-        Częstotliwość
+        {{ t('recurring.frequency') }}
         <select v-model="form.frequency">
-          <option value="monthly">Co miesiąc</option>
-          <option value="weekly">Co tydzień</option>
+          <option value="monthly">{{ t('recurring.frequencyMonthly') }}</option>
+          <option value="weekly">{{ t('recurring.frequencyWeekly') }}</option>
         </select>
       </label>
 
       <label>
-        {{ editingId !== null ? 'Następne wystąpienie' : 'Pierwsze wystąpienie' }}
+        {{ editingId !== null ? t('recurring.nextRunDate') : t('recurring.firstRunDate') }}
         <input v-model="form.nextRunDate" type="date" />
         <span v-if="fieldErrors.nextRunDate" class="field-error">{{ fieldErrors.nextRunDate }}</span>
       </label>
 
       <label class="checkbox-label">
         <input v-model="form.active" type="checkbox" />
-        Aktywna
+        {{ t('recurring.active') }}
       </label>
 
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
-        <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj' }}</button>
-        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">Anuluj</button>
+        <button type="submit" class="btn">{{ editingId !== null ? t('common.saveChanges') : t('recurring.add') }}</button>
+        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">{{ t('common.cancel') }}</button>
       </div>
     </form>
-    <p v-else>Dodaj najpierw kategorię, żeby móc dodawać transakcje cykliczne.</p>
+    <p v-else>{{ t('recurring.needCategoryFirst') }}</p>
   </div>
 </template>
 

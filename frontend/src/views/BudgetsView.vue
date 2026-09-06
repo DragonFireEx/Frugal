@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
@@ -10,6 +11,7 @@ import { useCurrency } from '../composables/useCurrency'
 import type { Budget } from '../types'
 import { isPositiveNumber } from '../utils/validators'
 
+const { t } = useI18n()
 const budgetsStore = useBudgetsStore()
 const categoriesStore = useCategoriesStore()
 const { formatCurrency } = useCurrency()
@@ -26,7 +28,7 @@ const form = reactive<BudgetPayload>({
 })
 
 function categoryName(categoryId: number): string {
-  return categoriesStore.list.find((category) => category.id === categoryId)?.name ?? '—'
+  return categoriesStore.list.find((category) => category.id === categoryId)?.name ?? t('common.none')
 }
 
 function resetForm(): void {
@@ -46,10 +48,10 @@ function validate(): boolean {
   const errors: Record<string, string> = {}
 
   if (!form.categoryId) {
-    errors.categoryId = 'Kategoria jest wymagana.'
+    errors.categoryId = t('budgets.validation.categoryRequired')
   }
   if (!isPositiveNumber(form.monthlyLimit)) {
-    errors.monthlyLimit = 'Limit musi być liczbą dodatnią.'
+    errors.monthlyLimit = t('budgets.validation.limitPositive')
   }
 
   fieldErrors.value = errors
@@ -81,7 +83,7 @@ async function handleSubmit(): Promise<void> {
     if (violations) {
       fieldErrors.value = violations
     } else {
-      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać budżetu.')
+      errorMessage.value = extractErrorMessage(error, t('budgets.errors.saveFailed'))
     }
   }
 }
@@ -94,7 +96,7 @@ onMounted(async () => {
     resetForm()
     await budgetsStore.fetchAll()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować danych.')
+    errorMessage.value = extractErrorMessage(error, t('budgets.errors.loadFailed'))
   } finally {
     isLoading.value = false
   }
@@ -103,16 +105,16 @@ onMounted(async () => {
 
 <template>
   <div class="budgets-view">
-    <h1>Budżety</h1>
+    <h1>{{ t('budgets.title') }}</h1>
 
     <LoadingIndicator v-if="isLoading" />
-    <EmptyState v-else-if="!budgetsStore.list.length" message="Brak budżetów — ustaw pierwszy limit poniżej." />
+    <EmptyState v-else-if="!budgetsStore.list.length" :message="t('budgets.empty')" />
     <div v-else class="table-scroll">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Kategoria</th>
-            <th>Miesięczny limit</th>
+            <th>{{ t('budgets.colCategory') }}</th>
+            <th>{{ t('budgets.colMonthlyLimit') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -121,7 +123,7 @@ onMounted(async () => {
             <td>{{ categoryName(budget.categoryId) }}</td>
             <td>{{ formatCurrency(budget.monthlyLimit) }}</td>
             <td class="form-actions">
-              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(budget)">Edytuj</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(budget)">{{ t('common.edit') }}</button>
             </td>
           </tr>
         </tbody>
@@ -129,10 +131,10 @@ onMounted(async () => {
     </div>
 
     <form v-if="categoriesStore.list.length" @submit.prevent="handleSubmit" class="entity-form" novalidate>
-      <h2>{{ editingId !== null ? 'Edytuj budżet' : 'Nowy budżet' }}</h2>
+      <h2>{{ editingId !== null ? t('budgets.editTitle') : t('budgets.newTitle') }}</h2>
 
       <label>
-        Kategoria
+        {{ t('budgets.category') }}
         <select v-model="form.categoryId">
           <option v-for="category in categoriesStore.list" :key="category.id" :value="category.id">
             {{ category.name }}
@@ -142,7 +144,7 @@ onMounted(async () => {
       </label>
 
       <label>
-        Miesięczny limit
+        {{ t('budgets.monthlyLimit') }}
         <input v-model="form.monthlyLimit" type="text" inputmode="decimal" />
         <span v-if="fieldErrors.monthlyLimit" class="field-error">{{ fieldErrors.monthlyLimit }}</span>
       </label>
@@ -150,10 +152,10 @@ onMounted(async () => {
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
-        <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj budżet' }}</button>
-        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">Anuluj</button>
+        <button type="submit" class="btn">{{ editingId !== null ? t('common.saveChanges') : t('budgets.addBudget') }}</button>
+        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">{{ t('common.cancel') }}</button>
       </div>
     </form>
-    <p v-else>Dodaj najpierw kategorię, żeby móc ustawić budżet.</p>
+    <p v-else>{{ t('budgets.needCategoryFirst') }}</p>
   </div>
 </template>

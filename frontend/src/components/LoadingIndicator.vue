@@ -1,11 +1,14 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ label?: string }>(), { label: 'Ładowanie…' })
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+const props = defineProps<{ label?: string }>()
 </script>
 
 <template>
   <div class="loading-indicator">
     <span class="spinner" aria-hidden="true"></span>
-    <span>{{ label }}</span>
+    <span>{{ props.label ?? t('common.loading') }}</span>
   </div>
 </template>
 

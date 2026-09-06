@@ -1,0 +1,187 @@
+{
+  "common": {
+    "loading": "Ładowanie…",
+    "edit": "Edytuj",
+    "delete": "Usuń",
+    "cancel": "Anuluj",
+    "saveChanges": "Zapisz zmiany",
+    "yes": "Tak",
+    "no": "Nie",
+    "none": "—"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transakcje",
+    "categories": "Kategorie",
+    "tags": "Tagi",
+    "budgets": "Budżety",
+    "recurring": "Cykliczne",
+    "logout": "Wyloguj",
+    "themeToDark": "Ciemny motyw",
+    "themeToLight": "Jasny motyw",
+    "language": "English"
+  },
+  "auth": {
+    "loginTitle": "Zaloguj się",
+    "registerTitle": "Zarejestruj się",
+    "email": "Email",
+    "password": "Hasło",
+    "name": "Imię",
+    "noAccountPrompt": "Nie masz konta?",
+    "hasAccountPrompt": "Masz już konto?",
+    "loginErrorFallback": "Nie udało się zalogować.",
+    "registerErrorFallback": "Nie udało się zarejestrować.",
+    "validation": {
+      "nameRequired": "Imię jest wymagane.",
+      "emailRequired": "Email jest wymagany.",
+      "emailInvalid": "Podaj prawidłowy adres email.",
+      "passwordRequired": "Hasło jest wymagane."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "month": "Miesiąc",
+    "income": "Przychody",
+    "expense": "Wydatki",
+    "balance": "Bilans",
+    "emptyMonth": "Brak transakcji w tym miesiącu.",
+    "budgetExceeded": "Przekroczono budżet ({limit})",
+    "yearlyTrend": "Trend roczny",
+    "year": "Rok",
+    "chartIncome": "Przychody",
+    "chartExpense": "Wydatki",
+    "chartBalance": "Bilans",
+    "loadErrorFallback": "Nie udało się załadować statystyk.",
+    "yearlyLoadErrorFallback": "Nie udało się załadować statystyk rocznych."
+  },
+  "transactions": {
+    "title": "Transakcje",
+    "month": "Miesiąc",
+    "category": "Kategoria",
+    "allCategories": "Wszystkie",
+    "exportCsv": "Eksportuj CSV",
+    "empty": "Brak transakcji w wybranym miesiącu — dodaj pierwszą poniżej.",
+    "colDate": "Data",
+    "colCategory": "Kategoria",
+    "colAmount": "Kwota",
+    "colDescription": "Opis",
+    "colTags": "Tagi",
+    "editTitle": "Edytuj transakcję",
+    "newTitle": "Nowa transakcja",
+    "amount": "Kwota",
+    "description": "Opis (opcjonalnie)",
+    "date": "Data",
+    "tags": "Tagi (opcjonalnie)",
+    "addTransaction": "Dodaj transakcję",
+    "needCategoryFirst": "Dodaj najpierw kategorię, żeby móc dodawać transakcje.",
+    "confirmDelete": "Usunąć tę transakcję?",
+    "validation": {
+      "categoryRequired": "Kategoria jest wymagana.",
+      "amountPositive": "Kwota musi być liczbą dodatnią.",
+      "dateRequired": "Data jest wymagana."
+    },
+    "errors": {
+      "loadFailed": "Nie udało się pobrać transakcji.",
+      "saveFailed": "Nie udało się zapisać transakcji.",
+      "deleteFailed": "Nie udało się usunąć transakcji.",
+      "exportFailed": "Nie udało się wyeksportować transakcji.",
+      "loadDataFailed": "Nie udało się załadować danych."
+    }
+  },
+  "categories": {
+    "title": "Kategorie",
+    "empty": "Brak kategorii — dodaj pierwszą poniżej.",
+    "colColor": "Kolor",
+    "colName": "Nazwa",
+    "colType": "Typ",
+    "typeIncome": "Przychód",
+    "typeExpense": "Wydatek",
+    "editTitle": "Edytuj kategorię",
+    "newTitle": "Nowa kategoria",
+    "name": "Nazwa",
+    "type": "Typ",
+    "color": "Kolor",
+    "icon": "Ikona (opcjonalnie)",
+    "addCategory": "Dodaj kategorię",
+    "confirmDelete": "Usunąć kategorię „{name}”?",
+    "validation": {
+      "nameRequired": "Nazwa jest wymagana."
+    },
+    "errors": {
+      "loadFailed": "Nie udało się pobrać kategorii.",
+      "saveFailed": "Nie udało się zapisać kategorii.",
+      "deleteFailed": "Nie udało się usunąć kategorii."
+    }
+  },
+  "tags": {
+    "title": "Tagi",
+    "empty": "Brak tagów — dodaj pierwszy poniżej.",
+    "colName": "Nazwa",
+    "newTitle": "Nowy tag",
+    "name": "Nazwa",
+    "addTag": "Dodaj tag",
+    "confirmDelete": "Usunąć tag „{name}”?",
+    "validation": {
+      "nameRequired": "Nazwa jest wymagana."
+    },
+    "errors": {
+      "loadFailed": "Nie udało się pobrać tagów.",
+      "saveFailed": "Nie udało się zapisać tagu.",
+      "deleteFailed": "Nie udało się usunąć tagu."
+    }
+  },
+  "budgets": {
+    "title": "Budżety",
+    "empty": "Brak budżetów — ustaw pierwszy limit poniżej.",
+    "colCategory": "Kategoria",
+    "colMonthlyLimit": "Miesięczny limit",
+    "editTitle": "Edytuj budżet",
+    "newTitle": "Nowy budżet",
+    "category": "Kategoria",
+    "monthlyLimit": "Miesięczny limit",
+    "addBudget": "Dodaj budżet",
+    "needCategoryFirst": "Dodaj najpierw kategorię, żeby móc ustawić budżet.",
+    "validation": {
+      "categoryRequired": "Kategoria jest wymagana.",
+      "limitPositive": "Limit musi być liczbą dodatnią."
+    },
+    "errors": {
+      "loadFailed": "Nie udało się załadować danych.",
+      "saveFailed": "Nie udało się zapisać budżetu."
+    }
+  },
+  "recurring": {
+    "title": "Transakcje cykliczne",
+    "empty": "Brak transakcji cyklicznych — dodaj pierwszą poniżej.",
+    "colCategory": "Kategoria",
+    "colAmount": "Kwota",
+    "colFrequency": "Częstotliwość",
+    "colNextRun": "Następne wystąpienie",
+    "colActive": "Aktywna",
+    "colDescription": "Opis",
+    "frequencyWeekly": "Co tydzień",
+    "frequencyMonthly": "Co miesiąc",
+    "editTitle": "Edytuj transakcję cykliczną",
+    "newTitle": "Nowa transakcja cykliczna",
+    "category": "Kategoria",
+    "amount": "Kwota",
+    "description": "Opis (opcjonalnie)",
+    "frequency": "Częstotliwość",
+    "nextRunDate": "Następne wystąpienie",
+    "firstRunDate": "Pierwsze wystąpienie",
+    "active": "Aktywna",
+    "add": "Dodaj",
+    "needCategoryFirst": "Dodaj najpierw kategorię, żeby móc dodawać transakcje cykliczne.",
+    "confirmDelete": "Usunąć tę transakcję cykliczną?",
+    "validation": {
+      "categoryRequired": "Kategoria jest wymagana.",
+      "amountPositive": "Kwota musi być liczbą dodatnią.",
+      "dateRequired": "Data jest wymagana."
+    },
+    "errors": {
+      "loadFailed": "Nie udało się załadować danych.",
+      "saveFailed": "Nie udało się zapisać transakcji cyklicznej.",
+      "deleteFailed": "Nie udało się usunąć transakcji cyklicznej."
+    }
+  }
+}

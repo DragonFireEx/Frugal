@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
@@ -8,6 +9,7 @@ import { useCategoriesStore, type CategoryPayload } from '../stores/categories'
 import type { Category } from '../types'
 import { isBlank } from '../utils/validators'
 
+const { t } = useI18n()
 const categoriesStore = useCategoriesStore()
 const { extractErrorMessage, extractViolations } = useApiError()
 
@@ -44,7 +46,7 @@ function validate(): boolean {
   const errors: Record<string, string> = {}
 
   if (isBlank(form.name)) {
-    errors.name = 'Nazwa jest wymagana.'
+    errors.name = t('categories.validation.nameRequired')
   }
 
   fieldErrors.value = errors
@@ -78,13 +80,13 @@ async function handleSubmit(): Promise<void> {
     if (violations) {
       fieldErrors.value = violations
     } else {
-      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać kategorii.')
+      errorMessage.value = extractErrorMessage(error, t('categories.errors.saveFailed'))
     }
   }
 }
 
 async function handleDelete(category: Category): Promise<void> {
-  if (!confirm(`Usunąć kategorię „${category.name}”?`)) {
+  if (!confirm(t('categories.confirmDelete', { name: category.name }))) {
     return
   }
 
@@ -93,7 +95,7 @@ async function handleDelete(category: Category): Promise<void> {
   try {
     await categoriesStore.remove(category.id)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się usunąć kategorii.')
+    errorMessage.value = extractErrorMessage(error, t('categories.errors.deleteFailed'))
   }
 }
 
@@ -101,7 +103,7 @@ onMounted(async () => {
   try {
     await categoriesStore.fetchAll()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się pobrać kategorii.')
+    errorMessage.value = extractErrorMessage(error, t('categories.errors.loadFailed'))
   } finally {
     isLoading.value = false
   }
@@ -110,17 +112,17 @@ onMounted(async () => {
 
 <template>
   <div class="categories-view">
-    <h1>Kategorie</h1>
+    <h1>{{ t('categories.title') }}</h1>
 
     <LoadingIndicator v-if="isLoading" />
-    <EmptyState v-else-if="!categoriesStore.list.length" message="Brak kategorii — dodaj pierwszą poniżej." />
+    <EmptyState v-else-if="!categoriesStore.list.length" :message="t('categories.empty')" />
     <div v-else class="table-scroll">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Kolor</th>
-            <th>Nazwa</th>
-            <th>Typ</th>
+            <th>{{ t('categories.colColor') }}</th>
+            <th>{{ t('categories.colName') }}</th>
+            <th>{{ t('categories.colType') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -128,10 +130,10 @@ onMounted(async () => {
           <tr v-for="category in categoriesStore.list" :key="category.id">
             <td><span class="color-dot" :style="{ backgroundColor: category.color }"></span></td>
             <td>{{ category.name }}</td>
-            <td>{{ category.type === 'income' ? 'Przychód' : 'Wydatek' }}</td>
+            <td>{{ category.type === 'income' ? t('categories.typeIncome') : t('categories.typeExpense') }}</td>
             <td class="form-actions">
-              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(category)">Edytuj</button>
-              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(category)">Usuń</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(category)">{{ t('common.edit') }}</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(category)">{{ t('common.delete') }}</button>
             </td>
           </tr>
         </tbody>
@@ -139,37 +141,37 @@ onMounted(async () => {
     </div>
 
     <form @submit.prevent="handleSubmit" class="entity-form" novalidate>
-      <h2>{{ editingId !== null ? 'Edytuj kategorię' : 'Nowa kategoria' }}</h2>
+      <h2>{{ editingId !== null ? t('categories.editTitle') : t('categories.newTitle') }}</h2>
 
       <label>
-        Nazwa
+        {{ t('categories.name') }}
         <input v-model="form.name" type="text" maxlength="100" />
         <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
       </label>
 
       <label>
-        Typ
+        {{ t('categories.type') }}
         <select v-model="form.type">
-          <option value="expense">Wydatek</option>
-          <option value="income">Przychód</option>
+          <option value="expense">{{ t('categories.typeExpense') }}</option>
+          <option value="income">{{ t('categories.typeIncome') }}</option>
         </select>
       </label>
 
       <label>
-        Kolor
+        {{ t('categories.color') }}
         <input v-model="form.color" type="color" />
       </label>
 
       <label>
-        Ikona (opcjonalnie)
+        {{ t('categories.icon') }}
         <input v-model="form.icon" type="text" maxlength="50" />
       </label>
 
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
-        <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj kategorię' }}</button>
-        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">Anuluj</button>
+        <button type="submit" class="btn">{{ editingId !== null ? t('common.saveChanges') : t('categories.addCategory') }}</button>
+        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">{{ t('common.cancel') }}</button>
       </div>
     </form>
   </div>

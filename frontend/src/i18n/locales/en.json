@@ -1,0 +1,187 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "yes": "Yes",
+    "no": "No",
+    "none": "—"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "categories": "Categories",
+    "tags": "Tags",
+    "budgets": "Budgets",
+    "recurring": "Recurring",
+    "logout": "Log out",
+    "themeToDark": "Dark theme",
+    "themeToLight": "Light theme",
+    "language": "Polski"
+  },
+  "auth": {
+    "loginTitle": "Log in",
+    "registerTitle": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "noAccountPrompt": "Don't have an account?",
+    "hasAccountPrompt": "Already have an account?",
+    "loginErrorFallback": "Failed to log in.",
+    "registerErrorFallback": "Failed to sign up.",
+    "validation": {
+      "nameRequired": "Name is required.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Password is required."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "month": "Month",
+    "income": "Income",
+    "expense": "Expenses",
+    "balance": "Balance",
+    "emptyMonth": "No transactions this month.",
+    "budgetExceeded": "Budget exceeded ({limit})",
+    "yearlyTrend": "Yearly trend",
+    "year": "Year",
+    "chartIncome": "Income",
+    "chartExpense": "Expenses",
+    "chartBalance": "Balance",
+    "loadErrorFallback": "Failed to load statistics.",
+    "yearlyLoadErrorFallback": "Failed to load yearly statistics."
+  },
+  "transactions": {
+    "title": "Transactions",
+    "month": "Month",
+    "category": "Category",
+    "allCategories": "All",
+    "exportCsv": "Export CSV",
+    "empty": "No transactions for the selected month — add the first one below.",
+    "colDate": "Date",
+    "colCategory": "Category",
+    "colAmount": "Amount",
+    "colDescription": "Description",
+    "colTags": "Tags",
+    "editTitle": "Edit transaction",
+    "newTitle": "New transaction",
+    "amount": "Amount",
+    "description": "Description (optional)",
+    "date": "Date",
+    "tags": "Tags (optional)",
+    "addTransaction": "Add transaction",
+    "needCategoryFirst": "Add a category first so you can add transactions.",
+    "confirmDelete": "Delete this transaction?",
+    "validation": {
+      "categoryRequired": "Category is required.",
+      "amountPositive": "Amount must be a positive number.",
+      "dateRequired": "Date is required."
+    },
+    "errors": {
+      "loadFailed": "Failed to fetch transactions.",
+      "saveFailed": "Failed to save the transaction.",
+      "deleteFailed": "Failed to delete the transaction.",
+      "exportFailed": "Failed to export transactions.",
+      "loadDataFailed": "Failed to load data."
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "empty": "No categories — add the first one below.",
+    "colColor": "Color",
+    "colName": "Name",
+    "colType": "Type",
+    "typeIncome": "Income",
+    "typeExpense": "Expense",
+    "editTitle": "Edit category",
+    "newTitle": "New category",
+    "name": "Name",
+    "type": "Type",
+    "color": "Color",
+    "icon": "Icon (optional)",
+    "addCategory": "Add category",
+    "confirmDelete": "Delete category \"{name}\"?",
+    "validation": {
+      "nameRequired": "Name is required."
+    },
+    "errors": {
+      "loadFailed": "Failed to fetch categories.",
+      "saveFailed": "Failed to save the category.",
+      "deleteFailed": "Failed to delete the category."
+    }
+  },
+  "tags": {
+    "title": "Tags",
+    "empty": "No tags — add the first one below.",
+    "colName": "Name",
+    "newTitle": "New tag",
+    "name": "Name",
+    "addTag": "Add tag",
+    "confirmDelete": "Delete tag \"{name}\"?",
+    "validation": {
+      "nameRequired": "Name is required."
+    },
+    "errors": {
+      "loadFailed": "Failed to fetch tags.",
+      "saveFailed": "Failed to save the tag.",
+      "deleteFailed": "Failed to delete the tag."
+    }
+  },
+  "budgets": {
+    "title": "Budgets",
+    "empty": "No budgets — set the first limit below.",
+    "colCategory": "Category",
+    "colMonthlyLimit": "Monthly limit",
+    "editTitle": "Edit budget",
+    "newTitle": "New budget",
+    "category": "Category",
+    "monthlyLimit": "Monthly limit",
+    "addBudget": "Add budget",
+    "needCategoryFirst": "Add a category first so you can set a budget.",
+    "validation": {
+      "categoryRequired": "Category is required.",
+      "limitPositive": "Limit must be a positive number."
+    },
+    "errors": {
+      "loadFailed": "Failed to load data.",
+      "saveFailed": "Failed to save the budget."
+    }
+  },
+  "recurring": {
+    "title": "Recurring transactions",
+    "empty": "No recurring transactions — add the first one below.",
+    "colCategory": "Category",
+    "colAmount": "Amount",
+    "colFrequency": "Frequency",
+    "colNextRun": "Next occurrence",
+    "colActive": "Active",
+    "colDescription": "Description",
+    "frequencyWeekly": "Weekly",
+    "frequencyMonthly": "Monthly",
+    "editTitle": "Edit recurring transaction",
+    "newTitle": "New recurring transaction",
+    "category": "Category",
+    "amount": "Amount",
+    "description": "Description (optional)",
+    "frequency": "Frequency",
+    "nextRunDate": "Next occurrence",
+    "firstRunDate": "First occurrence",
+    "active": "Active",
+    "add": "Add",
+    "needCategoryFirst": "Add a category first so you can add recurring transactions.",
+    "confirmDelete": "Delete this recurring transaction?",
+    "validation": {
+      "categoryRequired": "Category is required.",
+      "amountPositive": "Amount must be a positive number.",
+      "dateRequired": "Date is required."
+    },
+    "errors": {
+      "loadFailed": "Failed to load data.",
+      "saveFailed": "Failed to save the recurring transaction.",
+      "deleteFailed": "Failed to delete the recurring transaction."
+    }
+  }
+}

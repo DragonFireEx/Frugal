@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Chart from 'chart.js/auto'
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
@@ -10,6 +11,7 @@ import { useStatsStore } from '../stores/stats'
 import { useCurrency } from '../composables/useCurrency'
 import { getCurrentMonth } from '../composables/useDateFormat'
 
+const { t } = useI18n()
 const categoriesStore = useCategoriesStore()
 const statsStore = useStatsStore()
 const { formatCurrency } = useCurrency()
@@ -74,7 +76,7 @@ async function loadData(): Promise<void> {
     }
     await statsStore.fetchMonthly(month.value)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować statystyk.')
+    errorMessage.value = extractErrorMessage(error, t('dashboard.loadErrorFallback'))
   } finally {
     isLoading.value = false
   }
@@ -95,21 +97,21 @@ function renderYearlyChart(): void {
     labels: months.map((entry) => entry.month),
     datasets: [
       {
-        label: 'Przychody',
+        label: t('dashboard.chartIncome'),
         data: months.map((entry) => Number(entry.income)),
         borderColor: '#16a34a',
         backgroundColor: '#16a34a',
         tension: 0.2,
       },
       {
-        label: 'Wydatki',
+        label: t('dashboard.chartExpense'),
         data: months.map((entry) => Number(entry.expense)),
         borderColor: '#dc2626',
         backgroundColor: '#dc2626',
         tension: 0.2,
       },
       {
-        label: 'Bilans',
+        label: t('dashboard.chartBalance'),
         data: months.map((entry) => Number(entry.balance)),
         borderColor: '#6366f1',
         backgroundColor: '#6366f1',
@@ -141,7 +143,7 @@ async function loadYearly(): Promise<void> {
   try {
     await statsStore.fetchYearly(year.value)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować statystyk rocznych.')
+    errorMessage.value = extractErrorMessage(error, t('dashboard.yearlyLoadErrorFallback'))
   } finally {
     isYearlyLoading.value = false
   }
@@ -166,11 +168,11 @@ onUnmounted(() => {
 
 <template>
   <div class="dashboard-view">
-    <h1>Dashboard</h1>
+    <h1>{{ t('dashboard.title') }}</h1>
 
     <div class="filters">
       <label>
-        Miesiąc
+        {{ t('dashboard.month') }}
         <input v-model="month" type="month" />
       </label>
     </div>
@@ -182,20 +184,20 @@ onUnmounted(() => {
     <template v-else-if="statsStore.monthly">
       <div class="summary-cards">
         <div class="card">
-          <span class="card-label">Przychody</span>
+          <span class="card-label">{{ t('dashboard.income') }}</span>
           <span class="card-value income">{{ formatCurrency(statsStore.monthly.income) }}</span>
         </div>
         <div class="card">
-          <span class="card-label">Wydatki</span>
+          <span class="card-label">{{ t('dashboard.expense') }}</span>
           <span class="card-value expense">{{ formatCurrency(statsStore.monthly.expense) }}</span>
         </div>
         <div class="card">
-          <span class="card-label">Bilans</span>
+          <span class="card-label">{{ t('dashboard.balance') }}</span>
           <span class="card-value">{{ formatCurrency(statsStore.monthly.balance) }}</span>
         </div>
       </div>
 
-      <EmptyState v-if="!statsStore.monthly.byCategory.length" message="Brak transakcji w tym miesiącu." />
+      <EmptyState v-if="!statsStore.monthly.byCategory.length" :message="t('dashboard.emptyMonth')" />
 
       <template v-else>
         <div class="chart-container">
@@ -208,7 +210,7 @@ onUnmounted(() => {
             <span class="category-name">{{ entry.categoryName }}</span>
             <span class="category-total">{{ formatCurrency(entry.total) }}</span>
             <span v-if="entry.budgetExceeded" class="badge-exceeded">
-              Przekroczono budżet ({{ formatCurrency(entry.budgetLimit ?? '0') }})
+              {{ t('dashboard.budgetExceeded', { limit: formatCurrency(entry.budgetLimit ?? '0') }) }}
             </span>
           </li>
         </ul>
@@ -216,11 +218,11 @@ onUnmounted(() => {
     </template>
 
     <section class="yearly-section">
-      <h2>Trend roczny</h2>
+      <h2>{{ t('dashboard.yearlyTrend') }}</h2>
 
       <div class="filters">
         <label>
-          Rok
+          {{ t('dashboard.year') }}
           <input v-model="year" type="number" min="2000" max="2100" step="1" />
         </label>
       </div>

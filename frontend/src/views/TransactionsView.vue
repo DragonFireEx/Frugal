@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
@@ -12,6 +13,7 @@ import { useDateFormat, getCurrentMonth } from '../composables/useDateFormat'
 import type { Transaction } from '../types'
 import { isBlank, isPositiveNumber } from '../utils/validators'
 
+const { t } = useI18n()
 const categoriesStore = useCategoriesStore()
 const tagsStore = useTagsStore()
 const transactionsStore = useTransactionsStore()
@@ -36,12 +38,12 @@ const form = reactive({
 })
 
 function categoryName(categoryId: number): string {
-  return categoriesStore.list.find((category) => category.id === categoryId)?.name ?? '—'
+  return categoriesStore.list.find((category) => category.id === categoryId)?.name ?? t('common.none')
 }
 
 function tagNames(tagIds: number[]): string {
   if (!tagIds.length) {
-    return '—'
+    return t('common.none')
   }
 
   return tagIds
@@ -73,7 +75,7 @@ async function loadTransactions(): Promise<void> {
   try {
     await transactionsStore.fetchByMonth(monthFilter.value, categoryFilter.value || undefined)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się pobrać transakcji.')
+    errorMessage.value = extractErrorMessage(error, t('transactions.errors.loadFailed'))
   }
 }
 
@@ -81,13 +83,13 @@ function validate(): boolean {
   const errors: Record<string, string> = {}
 
   if (!form.categoryId) {
-    errors.categoryId = 'Kategoria jest wymagana.'
+    errors.categoryId = t('transactions.validation.categoryRequired')
   }
   if (!isPositiveNumber(form.amount)) {
-    errors.amount = 'Kwota musi być liczbą dodatnią.'
+    errors.amount = t('transactions.validation.amountPositive')
   }
   if (isBlank(form.date)) {
-    errors.date = 'Data jest wymagana.'
+    errors.date = t('transactions.validation.dateRequired')
   }
 
   fieldErrors.value = errors
@@ -122,7 +124,7 @@ async function handleSubmit(): Promise<void> {
     if (violations) {
       fieldErrors.value = violations
     } else {
-      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać transakcji.')
+      errorMessage.value = extractErrorMessage(error, t('transactions.errors.saveFailed'))
     }
   }
 }
@@ -139,12 +141,12 @@ async function handleExport(): Promise<void> {
     link.click()
     URL.revokeObjectURL(url)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się wyeksportować transakcji.')
+    errorMessage.value = extractErrorMessage(error, t('transactions.errors.exportFailed'))
   }
 }
 
 async function handleDelete(transaction: Transaction): Promise<void> {
-  if (!confirm('Usunąć tę transakcję?')) {
+  if (!confirm(t('transactions.confirmDelete'))) {
     return
   }
 
@@ -153,7 +155,7 @@ async function handleDelete(transaction: Transaction): Promise<void> {
   try {
     await transactionsStore.remove(transaction.id)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się usunąć transakcji.')
+    errorMessage.value = extractErrorMessage(error, t('transactions.errors.deleteFailed'))
   }
 }
 
@@ -172,7 +174,7 @@ onMounted(async () => {
     resetForm()
     await loadTransactions()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się załadować danych.')
+    errorMessage.value = extractErrorMessage(error, t('transactions.errors.loadDataFailed'))
   } finally {
     isLoading.value = false
   }
@@ -181,41 +183,38 @@ onMounted(async () => {
 
 <template>
   <div class="transactions-view">
-    <h1>Transakcje</h1>
+    <h1>{{ t('transactions.title') }}</h1>
 
     <div class="filters">
       <label>
-        Miesiąc
+        {{ t('transactions.month') }}
         <input v-model="monthFilter" type="month" />
       </label>
 
       <label>
-        Kategoria
+        {{ t('transactions.category') }}
         <select v-model="categoryFilter">
-          <option value="">Wszystkie</option>
+          <option value="">{{ t('transactions.allCategories') }}</option>
           <option v-for="category in categoriesStore.list" :key="category.id" :value="category.id">
             {{ category.name }}
           </option>
         </select>
       </label>
 
-      <button type="button" class="btn btn-secondary" @click="handleExport">Eksportuj CSV</button>
+      <button type="button" class="btn btn-secondary" @click="handleExport">{{ t('transactions.exportCsv') }}</button>
     </div>
 
     <LoadingIndicator v-if="isLoading" />
-    <EmptyState
-      v-else-if="!transactionsStore.list.length"
-      message="Brak transakcji w wybranym miesiącu — dodaj pierwszą poniżej."
-    />
+    <EmptyState v-else-if="!transactionsStore.list.length" :message="t('transactions.empty')" />
     <div v-else class="table-scroll">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Data</th>
-            <th>Kategoria</th>
-            <th>Kwota</th>
-            <th>Opis</th>
-            <th>Tagi</th>
+            <th>{{ t('transactions.colDate') }}</th>
+            <th>{{ t('transactions.colCategory') }}</th>
+            <th>{{ t('transactions.colAmount') }}</th>
+            <th>{{ t('transactions.colDescription') }}</th>
+            <th>{{ t('transactions.colTags') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -224,11 +223,11 @@ onMounted(async () => {
             <td>{{ formatDate(transaction.date) }}</td>
             <td>{{ categoryName(transaction.categoryId) }}</td>
             <td>{{ formatCurrency(transaction.amount) }}</td>
-            <td>{{ transaction.description ?? '—' }}</td>
+            <td>{{ transaction.description ?? t('common.none') }}</td>
             <td>{{ tagNames(transaction.tagIds) }}</td>
             <td class="form-actions">
-              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(transaction)">Edytuj</button>
-              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(transaction)">Usuń</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="startEdit(transaction)">{{ t('common.edit') }}</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(transaction)">{{ t('common.delete') }}</button>
             </td>
           </tr>
         </tbody>
@@ -236,10 +235,10 @@ onMounted(async () => {
     </div>
 
     <form v-if="hasCategories" @submit.prevent="handleSubmit" class="entity-form" novalidate>
-      <h2>{{ editingId !== null ? 'Edytuj transakcję' : 'Nowa transakcja' }}</h2>
+      <h2>{{ editingId !== null ? t('transactions.editTitle') : t('transactions.newTitle') }}</h2>
 
       <label>
-        Kategoria
+        {{ t('transactions.category') }}
         <select v-model="form.categoryId">
           <option v-for="category in categoriesStore.list" :key="category.id" :value="category.id">
             {{ category.name }}
@@ -249,24 +248,24 @@ onMounted(async () => {
       </label>
 
       <label>
-        Kwota
+        {{ t('transactions.amount') }}
         <input v-model="form.amount" type="text" inputmode="decimal" />
         <span v-if="fieldErrors.amount" class="field-error">{{ fieldErrors.amount }}</span>
       </label>
 
       <label>
-        Opis (opcjonalnie)
+        {{ t('transactions.description') }}
         <input v-model="form.description" type="text" maxlength="255" />
       </label>
 
       <label>
-        Data
+        {{ t('transactions.date') }}
         <input v-model="form.date" type="date" />
         <span v-if="fieldErrors.date" class="field-error">{{ fieldErrors.date }}</span>
       </label>
 
       <fieldset v-if="tagsStore.list.length" class="tag-fieldset">
-        <legend>Tagi (opcjonalnie)</legend>
+        <legend>{{ t('transactions.tags') }}</legend>
         <label v-for="tag in tagsStore.list" :key="tag.id" class="tag-checkbox">
           <input type="checkbox" :value="tag.id" v-model="form.tagIds" />
           {{ tag.name }}
@@ -276,11 +275,11 @@ onMounted(async () => {
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
-        <button type="submit" class="btn">{{ editingId !== null ? 'Zapisz zmiany' : 'Dodaj transakcję' }}</button>
-        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">Anuluj</button>
+        <button type="submit" class="btn">{{ editingId !== null ? t('common.saveChanges') : t('transactions.addTransaction') }}</button>
+        <button v-if="editingId !== null" type="button" class="btn btn-secondary" @click="resetForm">{{ t('common.cancel') }}</button>
       </div>
     </form>
-    <p v-else>Dodaj najpierw kategorię, żeby móc dodawać transakcje.</p>
+    <p v-else>{{ t('transactions.needCategoryFirst') }}</p>
   </div>
 </template>
 

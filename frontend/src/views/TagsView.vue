@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
@@ -8,6 +9,7 @@ import { useTagsStore, type TagPayload } from '../stores/tags'
 import type { Tag } from '../types'
 import { isBlank } from '../utils/validators'
 
+const { t } = useI18n()
 const tagsStore = useTagsStore()
 const { extractErrorMessage, extractViolations } = useApiError()
 
@@ -28,7 +30,7 @@ function validate(): boolean {
   const errors: Record<string, string> = {}
 
   if (isBlank(form.name)) {
-    errors.name = 'Nazwa jest wymagana.'
+    errors.name = t('tags.validation.nameRequired')
   }
 
   fieldErrors.value = errors
@@ -51,13 +53,13 @@ async function handleSubmit(): Promise<void> {
     if (violations) {
       fieldErrors.value = violations
     } else {
-      errorMessage.value = extractErrorMessage(error, 'Nie udało się zapisać tagu.')
+      errorMessage.value = extractErrorMessage(error, t('tags.errors.saveFailed'))
     }
   }
 }
 
 async function handleDelete(tag: Tag): Promise<void> {
-  if (!confirm(`Usunąć tag „${tag.name}”?`)) {
+  if (!confirm(t('tags.confirmDelete', { name: tag.name }))) {
     return
   }
 
@@ -66,7 +68,7 @@ async function handleDelete(tag: Tag): Promise<void> {
   try {
     await tagsStore.remove(tag.id)
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się usunąć tagu.')
+    errorMessage.value = extractErrorMessage(error, t('tags.errors.deleteFailed'))
   }
 }
 
@@ -74,7 +76,7 @@ onMounted(async () => {
   try {
     await tagsStore.fetchAll()
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się pobrać tagów.')
+    errorMessage.value = extractErrorMessage(error, t('tags.errors.loadFailed'))
   } finally {
     isLoading.value = false
   }
@@ -83,15 +85,15 @@ onMounted(async () => {
 
 <template>
   <div class="tags-view">
-    <h1>Tagi</h1>
+    <h1>{{ t('tags.title') }}</h1>
 
     <LoadingIndicator v-if="isLoading" />
-    <EmptyState v-else-if="!tagsStore.list.length" message="Brak tagów — dodaj pierwszy poniżej." />
+    <EmptyState v-else-if="!tagsStore.list.length" :message="t('tags.empty')" />
     <div v-else class="table-scroll">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Nazwa</th>
+            <th>{{ t('tags.colName') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -99,7 +101,7 @@ onMounted(async () => {
           <tr v-for="tag in tagsStore.list" :key="tag.id">
             <td>{{ tag.name }}</td>
             <td class="form-actions">
-              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(tag)">Usuń</button>
+              <button type="button" class="btn btn-secondary btn-small" @click="handleDelete(tag)">{{ t('common.delete') }}</button>
             </td>
           </tr>
         </tbody>
@@ -107,10 +109,10 @@ onMounted(async () => {
     </div>
 
     <form @submit.prevent="handleSubmit" class="entity-form" novalidate>
-      <h2>Nowy tag</h2>
+      <h2>{{ t('tags.newTitle') }}</h2>
 
       <label>
-        Nazwa
+        {{ t('tags.name') }}
         <input v-model="form.name" type="text" maxlength="50" />
         <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
       </label>
@@ -118,7 +120,7 @@ onMounted(async () => {
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
       <div class="form-actions">
-        <button type="submit" class="btn">Dodaj tag</button>
+        <button type="submit" class="btn">{{ t('tags.addTag') }}</button>
       </div>
     </form>
   </div>

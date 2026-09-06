@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
+import { useLocaleStore } from './stores/locale'
 import { useThemeStore } from './stores/theme'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
+const localeStore = useLocaleStore()
 const router = useRouter()
 
 function handleLogout(): void {
@@ -17,18 +21,21 @@ function handleLogout(): void {
   <div id="app">
     <header v-if="authStore.isAuthenticated" class="app-nav">
       <nav>
-        <RouterLink to="/">Dashboard</RouterLink>
-        <RouterLink to="/transactions">Transakcje</RouterLink>
-        <RouterLink to="/categories">Kategorie</RouterLink>
-        <RouterLink to="/tags">Tagi</RouterLink>
-        <RouterLink to="/budgets">Budżety</RouterLink>
-        <RouterLink to="/recurring-transactions">Cykliczne</RouterLink>
+        <RouterLink to="/">{{ t('nav.dashboard') }}</RouterLink>
+        <RouterLink to="/transactions">{{ t('nav.transactions') }}</RouterLink>
+        <RouterLink to="/categories">{{ t('nav.categories') }}</RouterLink>
+        <RouterLink to="/tags">{{ t('nav.tags') }}</RouterLink>
+        <RouterLink to="/budgets">{{ t('nav.budgets') }}</RouterLink>
+        <RouterLink to="/recurring-transactions">{{ t('nav.recurring') }}</RouterLink>
       </nav>
       <div class="app-nav-actions">
-        <button type="button" class="btn btn-secondary btn-small" @click="themeStore.toggle()">
-          {{ themeStore.theme === 'dark' ? 'Jasny motyw' : 'Ciemny motyw' }}
+        <button type="button" class="btn btn-secondary btn-small" @click="localeStore.toggle()">
+          {{ t('nav.language') }}
         </button>
-        <button type="button" @click="handleLogout">Wyloguj</button>
+        <button type="button" class="btn btn-secondary btn-small" @click="themeStore.toggle()">
+          {{ themeStore.theme === 'dark' ? t('nav.themeToLight') : t('nav.themeToDark') }}
+        </button>
+        <button type="button" @click="handleLogout">{{ t('nav.logout') }}</button>
       </div>
     </header>
 

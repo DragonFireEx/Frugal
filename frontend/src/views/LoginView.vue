@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink, useRouter } from 'vue-router'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import { useApiError } from '../composables/useApiError'
 import { useAuthStore } from '../stores/auth'
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const { extractErrorMessage } = useApiError()
@@ -22,7 +24,7 @@ async function handleSubmit(): Promise<void> {
     await authStore.login(email.value, password.value)
     await router.push('/')
   } catch (error) {
-    errorMessage.value = extractErrorMessage(error, 'Nie udało się zalogować.')
+    errorMessage.value = extractErrorMessage(error, t('auth.loginErrorFallback'))
   } finally {
     isSubmitting.value = false
   }
@@ -31,26 +33,26 @@ async function handleSubmit(): Promise<void> {
 
 <template>
   <div class="auth-view">
-    <h1>Zaloguj się</h1>
+    <h1>{{ t('auth.loginTitle') }}</h1>
 
     <form @submit.prevent="handleSubmit" class="entity-form">
       <label>
-        Email
+        {{ t('auth.email') }}
         <input v-model="email" type="email" required autocomplete="email" />
       </label>
 
       <label>
-        Hasło
+        {{ t('auth.password') }}
         <input v-model="password" type="password" required autocomplete="current-password" />
       </label>
 
       <ErrorAlert v-if="errorMessage" :message="errorMessage" />
 
-      <button type="submit" class="btn" :disabled="isSubmitting">Zaloguj się</button>
+      <button type="submit" class="btn" :disabled="isSubmitting">{{ t('auth.loginTitle') }}</button>
     </form>
 
     <p>
-      Nie masz konta? <RouterLink to="/register">Zarejestruj się</RouterLink>
+      {{ t('auth.noAccountPrompt') }} <RouterLink to="/register">{{ t('auth.registerTitle') }}</RouterLink>
     </p>
   </div>
 </template>
