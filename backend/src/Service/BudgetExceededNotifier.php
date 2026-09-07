@@ -28,37 +28,30 @@ class BudgetExceededNotifier
     }
 
     /**
-     * Call before writing the transaction that might push the category over
-     * budget, to capture whether it was already exceeded beforehand.
+     * Wraps a transaction write with a before/after budget check, sending an
+     * email only on the false -> true edge (the category wasn't exceeded
+     * before $mutate ran, but is exceeded after). $mutate is responsible for
+     * persisting and flushing whatever write it wraps.
      */
-    public function isExceeded(User $owner, Category $category, string $month): bool
+    public function checkAndNotify(User $owner, Category $category, string $month, callable $mutate): void
     {
         $budget = $this->budgetRepository->findOneBy(['owner' => $owner, 'category' => $category]);
         if (!$budget) {
-            return false;
-        }
+            $mutate();
 
-        return $this->totalSpent($owner, $category, $month) > (float) $budget->getMonthlyLimit();
-    }
-
-    /**
-     * Call after the write has been flushed. Sends an email only if the
-     * category is exceeded now and wasn't before (the false -> true edge).
-     */
-    public function notifyIfNewlyExceeded(User $owner, Category $category, string $month, bool $wasExceededBefore): void
-    {
-        if ($wasExceededBefore) {
-            return;
-        }
-
-        $budget = $this->budgetRepository->findOneBy(['owner' => $owner, 'category' => $category]);
-        if (!$budget) {
             return;
         }
 
         $limit = (float) $budget->getMonthlyLimit();
-        $total = $this->totalSpent($owner, $category, $month);
+        $wasExceeded = $this->totalSpent($owner, $category, $month) > $limit;
 
+        $mutate();
+
+        if ($wasExceeded) {
+            return;
+        }
+
+        $total = $this->totalSpent($owner, $category, $month);
         if ($total <= $limit) {
             return;
         }
@@ -68,14 +61,7 @@ class BudgetExceededNotifier
 
     private function totalSpent(User $owner, Category $category, string $month): float
     {
-        $transactions = $this->transactionRepository->findFiltered($owner, $month, $category->getId());
-
-        $total = 0.0;
-        foreach ($transactions as $transaction) {
-            $total += (float) $transaction->getAmount();
-        }
-
-        return $total;
+        return $this->transactionRepository->sumAmountForCategoryAndMonth($owner, $category, $month);
     }
 
     private function send(User $owner, Category $category, string $month, float $total, float $limit): void

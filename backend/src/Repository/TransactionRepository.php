@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Category;
 use App\Entity\Transaction;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -60,5 +61,25 @@ class TransactionRepository extends ServiceEntityRepository
             ->setParameter('end', $end)
             ->getQuery()
             ->getResult();
+    }
+
+    public function sumAmountForCategoryAndMonth(User $owner, Category $category, string $month): float
+    {
+        $start = new \DateTimeImmutable($month.'-01');
+        $end = $start->modify('first day of next month');
+
+        $sum = $this->createQueryBuilder('t')
+            ->select('SUM(t.amount)')
+            ->andWhere('t.owner = :owner')
+            ->andWhere('t.category = :category')
+            ->andWhere('t.date >= :start AND t.date < :end')
+            ->setParameter('owner', $owner)
+            ->setParameter('category', $category)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (float) ($sum ?? 0.0);
     }
 }

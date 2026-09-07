@@ -32,10 +32,7 @@ class TransactionController extends AbstractController
     #[Route('', name: 'transaction_list', methods: ['GET'])]
     public function list(Request $request, TransactionRepository $transactionRepository): JsonResponse
     {
-        $month = $request->query->get('month');
-        if (null !== $month && !preg_match('/^\d{4}-\d{2}$/', $month)) {
-            throw new BadRequestHttpException('month musi być w formacie YYYY-MM');
-        }
+        $month = $this->parseMonthFilter($request);
 
         $categoryId = $request->query->get('categoryId');
         $categoryId = null !== $categoryId ? (int) $categoryId : null;
@@ -51,10 +48,7 @@ class TransactionController extends AbstractController
     #[Route('/export', name: 'transaction_export', methods: ['GET'])]
     public function export(Request $request, TransactionRepository $transactionRepository): StreamedResponse
     {
-        $month = $request->query->get('month');
-        if (null !== $month && !preg_match('/^\d{4}-\d{2}$/', $month)) {
-            throw new BadRequestHttpException('month musi być w formacie YYYY-MM');
-        }
+        $month = $this->parseMonthFilter($request);
 
         /** @var User $user */
         $user = $this->getUser();
@@ -113,17 +107,16 @@ class TransactionController extends AbstractController
         $tags = $this->resolveOwnedTags($tagRepository, $user, $input->tagIds);
 
         $month = substr($input->date, 0, 7);
-        $wasExceeded = $budgetExceededNotifier->isExceeded($user, $category, $month);
 
         $transaction = new Transaction();
         $transaction->setOwner($user);
         $transaction->setCreatedAt(new \DateTimeImmutable());
         $this->applyInput($transaction, $input, $category, $tags);
 
-        $em->persist($transaction);
-        $em->flush();
-
-        $budgetExceededNotifier->notifyIfNewlyExceeded($user, $category, $month, $wasExceeded);
+        $budgetExceededNotifier->checkAndNotify($user, $category, $month, function () use ($em, $transaction): void {
+            $em->persist($transaction);
+            $em->flush();
+        });
 
         return $this->json($this->serialize($transaction), 201);
     }
@@ -161,12 +154,11 @@ class TransactionController extends AbstractController
         $tags = $this->resolveOwnedTags($tagRepository, $user, $input->tagIds);
 
         $month = substr($input->date, 0, 7);
-        $wasExceeded = $budgetExceededNotifier->isExceeded($user, $category, $month);
 
-        $this->applyInput($transaction, $input, $category, $tags);
-        $em->flush();
-
-        $budgetExceededNotifier->notifyIfNewlyExceeded($user, $category, $month, $wasExceeded);
+        $budgetExceededNotifier->checkAndNotify($user, $category, $month, function () use ($em, $transaction, $input, $category, $tags): void {
+            $this->applyInput($transaction, $input, $category, $tags);
+            $em->flush();
+        });
 
         return $this->json($this->serialize($transaction));
     }
@@ -188,6 +180,16 @@ class TransactionController extends AbstractController
         $em->flush();
 
         return $this->json(null, 204);
+    }
+
+    private function parseMonthFilter(Request $request): ?string
+    {
+        $month = $request->query->get('month');
+        if (null !== $month && !preg_match('/^\d{4}-\d{2}$/', $month)) {
+            throw new BadRequestHttpException('month musi być w formacie YYYY-MM');
+        }
+
+        return $month;
     }
 
     private function mapInput(Request $request): TransactionInput
