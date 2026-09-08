@@ -24,6 +24,8 @@ class TransactionRepository extends ServiceEntityRepository
     public function findFiltered(User $owner, ?string $month, ?int $categoryId): array
     {
         $qb = $this->createQueryBuilder('t')
+            ->addSelect('c')
+            ->leftJoin('t.category', 'c')
             ->andWhere('t.owner = :owner')
             ->setParameter('owner', $owner)
             ->orderBy('t.date', 'DESC');
