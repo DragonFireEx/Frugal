@@ -165,14 +165,12 @@ watch([monthFilter, categoryFilter], loadTransactions)
 
 onMounted(async () => {
   try {
-    if (categoriesStore.list.length === 0) {
-      await categoriesStore.fetchAll()
-    }
-    if (tagsStore.list.length === 0) {
-      await tagsStore.fetchAll()
-    }
+    await Promise.all([
+      categoriesStore.list.length === 0 ? categoriesStore.fetchAll() : Promise.resolve(),
+      tagsStore.list.length === 0 ? tagsStore.fetchAll() : Promise.resolve(),
+      loadTransactions(),
+    ])
     resetForm()
-    await loadTransactions()
   } catch (error) {
     errorMessage.value = extractErrorMessage(error, t('transactions.errors.loadDataFailed'))
   } finally {
