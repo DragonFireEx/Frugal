@@ -134,11 +134,11 @@ const hasCategories = computed(() => categoriesStore.list.length > 0)
 
 onMounted(async () => {
   try {
-    if (categoriesStore.list.length === 0) {
-      await categoriesStore.fetchAll()
-    }
+    await Promise.all([
+      categoriesStore.list.length === 0 ? categoriesStore.fetchAll() : Promise.resolve(),
+      recurringStore.fetchAll(),
+    ])
     resetForm()
-    await recurringStore.fetchAll()
   } catch (error) {
     errorMessage.value = extractErrorMessage(error, t('recurring.errors.loadFailed'))
   } finally {
