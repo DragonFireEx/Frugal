@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import Chart from 'chart.js/auto'
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import type { ChartConfiguration } from 'chart.js/auto'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import EmptyState from '../components/EmptyState.vue'
 import ErrorAlert from '../components/ErrorAlert.vue'
 import LoadingIndicator from '../components/LoadingIndicator.vue'
 import { useApiError } from '../composables/useApiError'
+import { useLazyChart } from '../composables/useLazyChart'
 import { useCategoriesStore } from '../stores/categories'
 import { useStatsStore } from '../stores/stats'
 import { useCurrency } from '../composables/useCurrency'
@@ -21,42 +22,35 @@ const isLoading = ref(true)
 const errorMessage = ref('')
 const month = ref(getCurrentMonth())
 const chartCanvas = ref<HTMLCanvasElement | null>(null)
-let chartInstance: Chart | null = null
+const { render: renderChart } = useLazyChart<'pie'>(chartCanvas)
 
 const isYearlyLoading = ref(true)
 const year = ref(String(new Date().getFullYear()))
 const yearlyChartCanvas = ref<HTMLCanvasElement | null>(null)
-let yearlyChartInstance: Chart | null = null
+const { render: renderYearlyChart } = useLazyChart<'line'>(yearlyChartCanvas)
 
 function categoryColor(categoryId: number): string {
   return categoriesStore.list.find((category) => category.id === categoryId)?.color ?? '#9ca3af'
 }
 
-function renderChart(): void {
-  if (!chartCanvas.value || !statsStore.monthly) {
-    return
+function monthlyChartConfig(): ChartConfiguration<'pie'> | null {
+  if (!statsStore.monthly) {
+    return null
   }
 
   const byCategory = statsStore.monthly.byCategory
-  const data = {
-    labels: byCategory.map((entry) => entry.categoryName),
-    datasets: [
-      {
-        data: byCategory.map((entry) => Number(entry.total)),
-        backgroundColor: byCategory.map((entry) => categoryColor(entry.categoryId)),
-      },
-    ],
-  }
 
-  if (chartInstance) {
-    chartInstance.data = data
-    chartInstance.update()
-    return
-  }
-
-  chartInstance = new Chart(chartCanvas.value, {
+  return {
     type: 'pie',
-    data,
+    data: {
+      labels: byCategory.map((entry) => entry.categoryName),
+      datasets: [
+        {
+          data: byCategory.map((entry) => Number(entry.total)),
+          backgroundColor: byCategory.map((entry) => categoryColor(entry.categoryId)),
+        },
+      ],
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -64,7 +58,7 @@ function renderChart(): void {
         legend: { position: 'bottom' },
       },
     },
-  })
+  }
 }
 
 async function loadData(): Promise<void> {
@@ -84,51 +78,44 @@ async function loadData(): Promise<void> {
   // isLoading must flip before the canvas is mounted (it sits behind a
   // v-if for the loading state), so wait a tick before rendering into it.
   await nextTick()
-  renderChart()
+  renderChart(monthlyChartConfig())
 }
 
-function renderYearlyChart(): void {
-  if (!yearlyChartCanvas.value || !statsStore.yearly) {
-    return
+function yearlyChartConfig(): ChartConfiguration<'line'> | null {
+  if (!statsStore.yearly) {
+    return null
   }
 
   const months = statsStore.yearly.months
-  const data = {
-    labels: months.map((entry) => entry.month),
-    datasets: [
-      {
-        label: t('dashboard.chartIncome'),
-        data: months.map((entry) => Number(entry.income)),
-        borderColor: '#16a34a',
-        backgroundColor: '#16a34a',
-        tension: 0.2,
-      },
-      {
-        label: t('dashboard.chartExpense'),
-        data: months.map((entry) => Number(entry.expense)),
-        borderColor: '#dc2626',
-        backgroundColor: '#dc2626',
-        tension: 0.2,
-      },
-      {
-        label: t('dashboard.chartBalance'),
-        data: months.map((entry) => Number(entry.balance)),
-        borderColor: '#6366f1',
-        backgroundColor: '#6366f1',
-        tension: 0.2,
-      },
-    ],
-  }
 
-  if (yearlyChartInstance) {
-    yearlyChartInstance.data = data
-    yearlyChartInstance.update()
-    return
-  }
-
-  yearlyChartInstance = new Chart(yearlyChartCanvas.value, {
+  return {
     type: 'line',
-    data,
+    data: {
+      labels: months.map((entry) => entry.month),
+      datasets: [
+        {
+          label: t('dashboard.chartIncome'),
+          data: months.map((entry) => Number(entry.income)),
+          borderColor: '#16a34a',
+          backgroundColor: '#16a34a',
+          tension: 0.2,
+        },
+        {
+          label: t('dashboard.chartExpense'),
+          data: months.map((entry) => Number(entry.expense)),
+          borderColor: '#dc2626',
+          backgroundColor: '#dc2626',
+          tension: 0.2,
+        },
+        {
+          label: t('dashboard.chartBalance'),
+          data: months.map((entry) => Number(entry.balance)),
+          borderColor: '#6366f1',
+          backgroundColor: '#6366f1',
+          tension: 0.2,
+        },
+      ],
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -136,7 +123,7 @@ function renderYearlyChart(): void {
         legend: { position: 'bottom' },
       },
     },
-  })
+  }
 }
 
 async function loadYearly(): Promise<void> {
@@ -149,7 +136,7 @@ async function loadYearly(): Promise<void> {
   }
 
   await nextTick()
-  renderYearlyChart()
+  renderYearlyChart(yearlyChartConfig())
 }
 
 watch(month, loadData)
@@ -158,11 +145,6 @@ watch(year, loadYearly)
 onMounted(() => {
   loadData()
   loadYearly()
-})
-
-onUnmounted(() => {
-  chartInstance?.destroy()
-  yearlyChartInstance?.destroy()
 })
 </script>
 
