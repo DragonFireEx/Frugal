@@ -2,9 +2,12 @@
 
 namespace App\Command;
 
+use App\Entity\Category;
 use App\Entity\RecurringTransaction;
 use App\Entity\Transaction;
+use App\Entity\User;
 use App\Repository\RecurringTransactionRepository;
+use App\Service\BudgetExceededNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -29,6 +32,7 @@ class GenerateRecurringTransactionsCommand extends Command
     public function __construct(
         private readonly RecurringTransactionRepository $recurringTransactionRepository,
         private readonly EntityManagerInterface $em,
+        private readonly BudgetExceededNotifier $budgetExceededNotifier,
     ) {
         parent::__construct();
     }
@@ -47,17 +51,47 @@ class GenerateRecurringTransactionsCommand extends Command
         $due = $this->recurringTransactionRepository->findDue($today);
         $generated = 0;
 
+        /** @var array<string, array{owner: User, category: Category, month: string, transactions: Transaction[]}> $groups */
+        $groups = [];
+
         foreach ($due as $recurring) {
             $iterations = 0;
             while ($recurring->getNextRunDate() <= $today && $iterations < self::MAX_OCCURRENCES_PER_RUN) {
-                $this->em->persist($this->buildTransaction($recurring));
+                $transaction = $this->buildTransaction($recurring);
+                $month = $transaction->getDate()->format('Y-m');
+                $key = sprintf('%d:%d:%s', $recurring->getOwner()->getId(), $recurring->getCategory()->getId(), $month);
+
+                $groups[$key] ??= [
+                    'owner' => $recurring->getOwner(),
+                    'category' => $recurring->getCategory(),
+                    'month' => $month,
+                    'transactions' => [],
+                ];
+                $groups[$key]['transactions'][] = $transaction;
+
                 $recurring->setNextRunDate($this->advance($recurring->getNextRunDate(), $recurring->getFrequency()));
                 ++$generated;
                 ++$iterations;
             }
         }
 
-        $this->em->flush();
+        // Grouped by owner/category/month (rather than one flush for
+        // everything) so BudgetExceededNotifier sees an accurate before/after
+        // total per group - the same budget-exceeded emails a manually
+        // entered transaction would trigger also fire for recurring ones.
+        foreach ($groups as $group) {
+            $this->budgetExceededNotifier->checkAndNotify(
+                $group['owner'],
+                $group['category'],
+                $group['month'],
+                function () use ($group): void {
+                    foreach ($group['transactions'] as $transaction) {
+                        $this->em->persist($transaction);
+                    }
+                    $this->em->flush();
+                }
+            );
+        }
 
         $io->writeln(sprintf('Generated %d transaction(s) from %d recurring transaction(s).', $generated, count($due)));
 

@@ -26,6 +26,8 @@ class TransactionRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('t')
             ->addSelect('c')
             ->leftJoin('t.category', 'c')
+            ->addSelect('tag')
+            ->leftJoin('t.tags', 'tag')
             ->andWhere('t.owner = :owner')
             ->setParameter('owner', $owner)
             ->orderBy('t.date', 'DESC');
